@@ -1,0 +1,29 @@
+gsr-log-app/
+├── public/
+│   ├── gsr_data.csv
+│   └── index.html
+├── src/
+│   ├── assets/
+│   │   ├── colors.js
+│   │   └── fonts.css
+│   ├── components/
+│   │   ├── common/
+│   │   │   ├── AnimatedButton.js
+│   │   │   ├── TabNavigation.js
+│   │   │   └── GlobalStyles.js
+│   │   ├── tabs/
+│   │   │   ├── LogEntry.js
+│   │   │   ├── LogHistory.js
+│   │   │   ├── DailySummary.js
+│   │   │   └── ManageData.js
+│   ├── hooks/
+│   │   ├── useAppData.js
+│   │   └── usePersistentState.js
+│   ├── utils/
+│   │   ├── csvParser.js
+│   │   └── pdfGenerator.js
+│   ├── App.js
+│   └── main.jsx
+├── .gitignore
+├── package.json
+└── README.md

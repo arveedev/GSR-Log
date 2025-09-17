@@ -1,0 +1,137 @@
+Product Requirements Document: GSR Log App
+Document Version: 1.0
+Author: Ron Vincent Jocson
+Date: September 17, 2025
+
+1. Introduction
+The GSR Log App is a single-page web application designed for the simple and efficient logging of daily GSR-related data. The app's primary purpose is to provide a user-friendly interface for data entry, history tracking, and summary viewing, with a key focus on local, client-side data persistence. This eliminates the need for a server-side database, making the application lightweight and self-contained.
+
+2. Problem Statement
+Users need a straightforward tool to record daily GSR data (such as bags, weights, and varieties) without the complexity of traditional database-driven applications. Current solutions are often too cumbersome or require an internet connection, which is not always practical for the target user. A simple, local-first solution is required that allows data to be easily logged, viewed, and saved.
+
+3. Goals & Objectives
+Primary Goal: To provide a simple, reliable, and locally-hosted application for daily data logging.
+
+Objective 1: Enable seamless data persistence by storing all application data directly in the user's browser via localStorage and a local CSV file.
+
+Objective 2: Offer a clear, tab-based user interface for intuitive navigation.
+
+Objective 3: Allow users to easily manage lookup data (provinces, varieties, etc.) directly within the app.
+
+Objective 4: Provide a mechanism to export the entire dataset as a single, structured CSV file for backup or external analysis.
+
+4. Key Features & Functionality
+The application is organized into four main sections, accessible via the top-level tabbed navigation.
+
+Log Entry Tab (LogEntry.jsx):
+
+A form-based interface for adding new daily data entries.
+
+Input fields include date, province, warehouse, bags, netkgs, per50, variety, transaction_type, and remarks.
+
+The form utilizes pre-defined lookup data for certain fields (e.g., provinces, varieties) to ensure data consistency.
+
+History Tab (LogHistory.jsx):
+
+A comprehensive list view displaying all previously logged entries.
+
+Entries can be sorted or filtered based on various fields.
+
+Functionality to update or delete individual log entries.
+
+Summary Tab (DailySummary.jsx):
+
+Provides aggregated views of the data.
+
+Displays summaries of daily or historical data (e.g., total bags per day, total net weight per variety).
+
+This section is intended for data visualization and high-level analysis.
+
+Manage Tab (ManageData.jsx):
+
+A dedicated section for managing the application's lookup data.
+
+Users can add, edit, or delete items from the lists of provinces, warehouses, varieties, and transaction_types.
+
+Data Export (App.jsx):
+
+A prominent "Save Data" button is available in the header.
+
+Clicking this button triggers a function to convert the entire dataset into a single CSV string and prompt a file download.
+
+5. Technical Requirements & Assumptions
+Platform: Web Application (HTML, CSS, JavaScript).
+
+Frontend Framework: React.
+
+State Management: React Context API (AppDataContext) to manage global state and data manipulation functions.
+
+Custom Hooks:
+
+useAppData.js for clean access to the global context.
+
+usePersistentState.js for synchronizing specific component states with localStorage.
+
+Styling: All components are styled using styled-components, including global styles for consistent typography and layout.
+
+Data Handling:
+
+Data is stored and managed as a single JavaScript object in memory.
+
+The data is persisted locally in the browser's localStorage.
+
+All data is stored in and retrieved from a local CSV file (gsr_data.csv).
+
+The papaparse library is used for parsing CSV strings into JavaScript objects and unparsing objects back into CSV strings.
+
+Build Tool: Vite.
+
+6. Technical Dependencies
+To ensure the application can be installed and run on a new computer, the following dependencies are required. They can be installed using npm or yarn.
+
+Production Dependencies: These are required for the app to run.
+
+react: The core React library.
+
+react-dom: Enables rendering React components to the DOM.
+
+styled-components: The CSS-in-JS library for all styling.
+
+papaparse: For parsing and unparsing CSV data.
+
+Development Dependencies: These are required for the development and build process.
+
+vite: The fast build tool and development server.
+
+@vitejs/plugin-react: The official Vite plugin for React.
+
+babel-plugin-styled-components: A Babel plugin that processes styled components for Vite.
+
+You can install all dependencies with these two commands:
+
+Bash
+
+npm install react react-dom styled-components papaparse
+npm install --save-dev vite @vitejs/plugin-react babel-plugin-styled-components
+7. Scope
+In Scope:
+
+The core functionality of the four tabs as described above.
+
+Local data persistence and a CSV export mechanism.
+
+Dynamic, responsive UI.
+
+The application is a single-user, single-device tool.
+
+Out of Scope:
+
+User authentication or multiple user accounts.
+
+Cloud or server-side data storage.
+
+Any real-time collaboration or synchronization features.
+
+Complex reports or advanced data analysis features beyond the "Summary" tab.
+
+Offline-first support or a dedicated Progressive Web App (PWA) manifest (though it could be added later).
