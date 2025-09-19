@@ -22,6 +22,7 @@ const LogHistory = () => {
     // State for the search bar input.
     const [searchTerm, setSearchTerm] = useState('');
     // State to manage the sorting configuration (which column and direction).
+    // FIX: Changed sort key 'transaction_type' to 'transactionType' to match camelCase.
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
     
     // State to control the visibility of the edit and delete modals.
@@ -39,12 +40,14 @@ const LogHistory = () => {
         netkgs: '',
         per50: '',
         variety: '',
-        transaction_type: '',
+        // FIX: Changed 'transaction_type' to 'transactionType' to match the data structure.
+        transactionType: '', 
         remarks: '',
     });
 
     // Sorts the data alphabetically for dropdown menus in the edit modal.
     const sortedProvinces = [...data.provinces].sort((a, b) => a.name.localeCompare(b.name));
+    // FIX: Accessing transactionTypes.name to ensure correct sorting.
     const sortedTransactionTypes = [...data.transactionTypes].sort((a, b) => a.name.localeCompare(b.name));
     const sortedVarieties = [...data.varieties].sort((a, b) => a.name.localeCompare(b.name));
 
@@ -122,7 +125,8 @@ const LogHistory = () => {
             netkgs: entry.netkgs,
             per50: entry.per50,
             variety: entry.variety,
-            transaction_type: entry.transaction_type,
+            // FIX: Changed 'transaction_type' to 'transactionType' to match the data structure.
+            transactionType: entry.transactionType,
             remarks: entry.remarks,
         });
         setIsEditModalOpen(true);
@@ -140,10 +144,12 @@ const LogHistory = () => {
         if (selectedEntry) {
             // Recalculate 'per50' based on the new 'netkgs' value.
             const per50 = (parseFloat(editForm.netkgs) / 50).toFixed(3);
+            // FIX: Changed 'transaction_type' to 'transactionType' in the updatedEntry object.
             const updatedEntry = {
                 ...selectedEntry,
                 ...editForm,
                 per50, // Use the newly calculated per50.
+                transactionType: editForm.transactionType // Ensure the key is camelCase here
             };
             updateLogEntry(updatedEntry); // Call the global update function.
             setIsEditModalOpen(false);
@@ -163,7 +169,9 @@ const LogHistory = () => {
     // Handles changes to the form fields in the edit modal.
     const handleEditFormChange = (e) => {
         const { name, value } = e.target;
-        setEditForm(prev => ({ ...prev, [name]: value }));
+        // FIX: The name in the form is 'transaction_type', but we need to update the state with the 'transactionType' key.
+        const newKey = name === 'transaction_type' ? 'transactionType' : name;
+        setEditForm(prev => ({ ...prev, [newKey]: value }));
     };
 
     // Filters the warehouses list for the edit modal based on the selected province.
@@ -196,7 +204,8 @@ const LogHistory = () => {
                             <TableHeader onClick={() => requestSort('netkgs')}><span>Net Kgs</span><SortIcon>{getSortIcon('netkgs')}</SortIcon></TableHeader>
                             <TableHeader onClick={() => requestSort('per50')}><span>Per 50</span><SortIcon>{getSortIcon('per50')}</SortIcon></TableHeader>
                             <TableHeader onClick={() => requestSort('variety')}><span>Variety</span><SortIcon>{getSortIcon('variety')}</SortIcon></TableHeader>
-                            <TableHeader onClick={() => requestSort('transaction_type')}><span>Type</span><SortIcon>{getSortIcon('transaction_type')}</SortIcon></TableHeader>
+                            {/* FIX: Changed the header's onClick key to 'transactionType' */}
+                            <TableHeader onClick={() => requestSort('transactionType')}><span>Type</span><SortIcon>{getSortIcon('transactionType')}</SortIcon></TableHeader>
                             <TableHeader>Remarks</TableHeader>
                             <TableHeader $actionHeader>Actions</TableHeader>
                         </tr>
@@ -212,7 +221,8 @@ const LogHistory = () => {
                                     <TableCell>{entry.netkgs}</TableCell>
                                     <TableCell>{entry.per50}</TableCell>
                                     <TableCell>{entry.variety}</TableCell>
-                                    <TableCell>{entry.transaction_type}</TableCell>
+                                    {/* FIX: Changed `entry.transaction_type` to `entry.transactionType` */}
+                                    <TableCell>{entry.transactionType}</TableCell>
                                     <TableCell $remarksCell>{entry.remarks}</TableCell>
                                     <TableCell $actionsCell>
                                         <ActionButton onClick={() => handleEditClick(entry)}>✏️</ActionButton>
@@ -261,7 +271,8 @@ const LogHistory = () => {
                     </FormRow>
                     <FormRow>
                         <label htmlFor="edit-transaction_type">Transaction Type:</label>
-                        <Select id="edit-transaction_type" name="transaction_type" value={editForm.transaction_type} onChange={handleEditFormChange} required>
+                        {/* FIX: Changed `name` to `transactionType` to match the state key */}
+                        <Select id="edit-transaction_type" name="transactionType" value={editForm.transactionType} onChange={handleEditFormChange} required>
                             <option value="">Select Type</option>
                             {/* FIX #2: Sorted transaction types alphabetically */}
                             {sortedTransactionTypes.map((t, index) => (
@@ -330,6 +341,7 @@ const Modal = ({ isOpen, onClose, children }) => {
     );
 };
 
+
 // --- Styled Components ---
 const HistoryContainer = styled.div`
     max-width: 1000px;
@@ -378,14 +390,13 @@ const HistoryTable = styled.table`
     table-layout: fixed;
 `;
 
-// FIX #1: This CSS ensures the text and icon stay together and have space, without breaking the table layout.
 const TableHeader = styled.th`
     background-color: #f0f0f0;
     color: #333;
     padding: 12px;
     text-align: left;
     cursor: pointer;
-    white-space: nowrap; /* Keeps content on a single line */
+    white-space: nowrap;
     user-select: none;
     transition: background-color 0.3s ease;
 
@@ -402,7 +413,6 @@ const TableHeader = styled.th`
     `}
 `;
 
-// FIX #1: A dedicated component for the icon to guarantee a fixed space.
 const SortIcon = styled.span`
     margin-left: 5px;
     display: inline-block;
@@ -442,19 +452,23 @@ const ActionButton = styled.button`
     background-color: #3498db;
     color: white;
     border: none;
-    border-radius: 4px;
-    padding: 5px 10px;
+    border-radius: 6px;
+    padding: 6px 12px;
     cursor: pointer;
-    font-size: 0.8em;
-    transition: background-color 0.3s ease, transform 0.1s ease;
+    font-size: 0.85em;
+    font-weight: bold;
+    transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     
     &:hover {
         background-color: #2980b9;
         transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     }
     
     &:active {
-        transform: translateY(1px);
+        transform: translateY(0);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 `;
 
@@ -485,13 +499,14 @@ const ModalOverlay = styled.div`
 `;
 
 const ModalContent = styled.div`
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    background: #f4f7f6;
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
     min-width: 300px;
-    max-width: 600px;
+    max-width: 450px;
     width: 90%;
+    border: 1px solid #e0e0e0;
     animation: slideIn 0.3s forwards;
     
     @keyframes slideIn {
@@ -502,36 +517,41 @@ const ModalContent = styled.div`
 
 const ModalHeader = styled.h3`
     margin-top: 0;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     text-align: center;
+    color: #34495e;
 `;
 
 const Form = styled.form`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr)); /* Adjusted for better overflow handling */
+    gap: 10px;
+    align-items: end;
 `;
 
 const FormRow = styled.div`
     display: flex;
     flex-direction: column;
-    flex: 1 1 calc(50% - 7.5px);
     
     ${({ $fullWidth }) => $fullWidth && `
-        flex: 1 1 100%;
+        grid-column: 1 / -1;
     `}
     
     label {
         font-weight: bold;
         margin-bottom: 5px;
+        font-size: 0.95em;
+        color: #555;
     }
 `;
 
 const Input = styled.input`
     padding: 8px;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: 6px;
+    font-size: 1em;
     transition: all 0.2s ease-in-out;
+    box-sizing: border-box; /* Ensures padding doesn't cause overflow */
     
     &:focus {
         outline: none;
@@ -544,11 +564,12 @@ const Select = styled.select`
     width: 100%;
     padding: 8px;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: 6px;
     font-size: 1em;
     background-color: #fff;
     cursor: pointer;
     transition: all 0.2s ease-in-out;
+    box-sizing: border-box;
     
     &:focus {
         outline: none;
@@ -565,9 +586,11 @@ const Select = styled.select`
 const TextArea = styled.textarea`
     padding: 8px;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: 6px;
     min-height: 80px;
+    font-size: 1em;
     transition: all 0.2s ease-in-out;
+    box-sizing: border-box;
     
     &:focus {
         outline: none;
@@ -579,9 +602,9 @@ const TextArea = styled.textarea`
 const FormActions = styled.div`
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
+    gap: 8px;
     width: 100%;
-    margin-top: 20px;
+    margin-top: 15px;
 `;
 
 const CancelButton = styled(ActionButton)`

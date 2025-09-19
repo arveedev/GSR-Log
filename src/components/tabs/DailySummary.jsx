@@ -91,7 +91,8 @@ const DailySummary = () => {
 
         // Next, group the filtered entries into a nested object structure.
         filteredEntries.forEach(entry => {
-            const { province, warehouse, transaction_type, variety, bags, netkgs, per50 } = entry;
+            // FIX: Changed transaction_type to transactionType to match the data model.
+            const { province, warehouse, transactionType, variety, bags, netkgs, per50 } = entry;
             
             // We use a nested object structure to group data.
             if (!groupedData[province]) {
@@ -100,19 +101,25 @@ const DailySummary = () => {
             if (!groupedData[province][warehouse]) {
                 groupedData[province][warehouse] = {};
             }
-            if (!groupedData[province][warehouse][transaction_type]) {
-                groupedData[province][warehouse][transaction_type] = {};
+            // FIX: Changed transaction_type to transactionType.
+            if (!groupedData[province][warehouse][transactionType]) {
+                groupedData[province][warehouse][transactionType] = {};
             }
-            if (!groupedData[province][warehouse][transaction_type][variety]) {
-                groupedData[province][warehouse][transaction_type][variety] = {
+            // FIX: Changed transaction_type to transactionType.
+            if (!groupedData[province][warehouse][transactionType][variety]) {
+                // FIX: Changed transaction_type to transactionType.
+                groupedData[province][warehouse][transactionType][variety] = {
                     totals: { bags: 0, netkgs: 0, per50: 0 }
                 };
             }
             
             // Add to totals, converting string values to floats.
-            groupedData[province][warehouse][transaction_type][variety].totals.bags += parseFloat(bags);
-            groupedData[province][warehouse][transaction_type][variety].totals.netkgs += parseFloat(netkgs);
-            groupedData[province][warehouse][transaction_type][variety].totals.per50 += parseFloat(per50);
+            // FIX: Changed transaction_type to transactionType.
+            groupedData[province][warehouse][transactionType][variety].totals.bags += parseFloat(bags);
+            // FIX: Changed transaction_type to transactionType.
+            groupedData[province][warehouse][transactionType][variety].totals.netkgs += parseFloat(netkgs);
+            // FIX: Changed transaction_type to transactionType.
+            groupedData[province][warehouse][transactionType][variety].totals.per50 += parseFloat(per50);
         });
         
         return groupedData;
@@ -181,6 +188,7 @@ const DailySummary = () => {
                                                 <SectionBorder $color={warehouseColors.main} />
                                                 <h4>Warehouse: {warehouse}</h4>
                                             </SectionTitle>
+                                            {/* No change needed here, as the keys from the object are correct now. */}
                                             {Object.keys(summaryData[province][warehouse]).map(transaction => {
                                                 const transactionColors = getConsistentColor(transaction);
                                                 return (
@@ -421,7 +429,7 @@ const PDFButton = styled.button`
     &:hover {
         background-color: #27ae60;
         transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        box-shadow: 4px 8px rgba(0,0,0,0.1);
     }
     &:active {
         transform: translateY(1px);

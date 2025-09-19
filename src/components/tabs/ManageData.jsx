@@ -1,20 +1,259 @@
-// This component provides an interface to manage the application's core data lists (provinces, warehouses, etc.).
-// It uses a tabbed layout with modals for adding, editing, and deleting items.
-
 import React, { useState } from 'react';
 import styled from 'styled-components';
-// useAppData provides access to the global data state and the function to update it.
-import { useAppData } from '../../hooks/useAppData';
+import { useAppData } from '../../context/AppDataContext';
+import { v4 as uuidv4 } from 'uuid';
 
+// --- Styled Components ---
+
+const ManageContainer = styled.div`
+    padding: 2rem;
+    background-color: #f7f9fc;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+`;
+
+const ButtonGroup = styled.div`
+    display: flex;
+    gap: 0.5rem;
+`;
+
+const Header = styled.h2`
+    color: #333;
+    margin-bottom: 1.5rem;
+    font-size: 1.75rem;
+    font-weight: 600;
+`;
+
+const TabNavigation = styled.div`
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+`;
+
+const TabButton = styled.button`
+    padding: 0.75rem 1.25rem;
+    border: none;
+    background-color: ${props => (props.$active ? '#007bff' : '#e9ecef')};
+    color: ${props => (props.$active ? '#fff' : '#495057')};
+    border-radius: 20px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    &:hover {
+        background-color: ${props => (props.$active ? '#0056b3' : '#dae1e7')};
+    }
+`;
+
+const ContentWrapper = styled.div`
+    background-color: #fff;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+`;
+
+const ListSection = styled.div`
+    margin-top: 1.5rem;
+`;
+
+const ListForm = styled.form`
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    input, select {
+        padding: 0.75rem;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        flex-grow: 1;
+    }
+    button {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        background-color: #28a745;
+        color: white;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.2s ease-in-out;
+        &:hover {
+            background-color: #218838;
+        }
+    }
+`;
+
+const DataTable = styled.table`
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    th, td {
+        text-align: left;
+        padding: 1rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+    th {
+        background-color: #f1f3f5;
+        font-weight: 600;
+        color: #555;
+    }
+`;
+
+const DataRow = styled.tr`
+    transition: background-color 0.2s ease-in-out;
+    &:hover {
+        background-color: #f8f9fa;
+    }
+`;
+
+const ActionButton = styled.button`
+    background: none;
+    border: none;
+    color: ${props => (props.$delete ? '#dc3545' : '#007bff')};
+    cursor: pointer;
+    font-weight: 500;
+    margin-right: 0.5rem;
+    &:hover {
+        text-decoration: underline;
+    }
+`;
+
+const Placeholder = styled.p`
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+    padding: 2rem 0;
+`;
+
+const ProvinceHeader = styled.h4`
+    color: #007bff;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+`;
+
+// Modal Styles
+const ModalOverlay = styled.div`
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+`;
+
+const ModalContent = styled.div`
+    background-color: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+`;
+
+const ModalHeader = styled.h3`
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: #333;
+    font-size: 1.5rem;
+`;
+
+const ModalBody = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+`;
+
+const ModalFormGroup = styled.div`
+    display: flex;
+    flex-direction: column;
+`;
+
+const ModalLabel = styled.label`
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 0.25rem;
+`;
+
+const ModalInput = styled.input`
+    padding: 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    width: 100%;
+    transition: border-color 0.2s ease;
+    &:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+`;
+
+const ModalSelect = styled.select`
+    padding: 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    width: 100%;
+    background-color: white;
+    transition: border-color 0.2s ease;
+    &:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+`;
+
+const ModalButtonContainer = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1.5rem;
+`;
+
+const ModalButton = styled.button`
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background-color: ${props => (props.$cancel ? '#dc3545' : '#28a745')};
+    color: white;
+    transition: background-color 0.2s ease-in-out;
+    &:hover {
+        background-color: ${props => (props.$cancel ? '#c82333' : '#218838')};
+    }
+`;
+
+// A simple function to generate a unique ID. You can replace this with a more robust solution like the 'uuid' library if needed.
+const generateUniqueId = () => {
+    return Date.now().toString(36) + Math.random().toString(36).substring(2);
+};
+
+// Main Component
 const ManageData = () => {
     // Destructure global data and the update function from the application context.
     const { data, updateAppData } = useAppData();
-    // State to control which tab is currently active. Defaults to 'provinces'.
-    const [activeList, setActiveList] = useState('provinces');
+    // State to control which tab is currently active.
+    const [activeList, setActiveList] = useState('ricemills');
 
     // State for controlling the edit modal's visibility and data.
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [editForm, setEditForm] = useState({ name: '', province: '' });
+    const [editForm, setEditForm] = useState({ 
+        name: '', 
+        province: '', 
+        grainType: '', 
+        weight: '', 
+        type: '', 
+        price: '', 
+        range: '', 
+        enwf: '', 
+        ownerRepresentative: '', 
+        address: '', 
+        contactNumber: '' 
+    });
     // Stores the original item to identify it during the update process.
     const [originalItem, setOriginalItem] = useState(null);
     // Stores the name of the list being edited (e.g., 'provinces').
@@ -28,7 +267,19 @@ const ManageData = () => {
     const [listToDeleteFrom, setListToDeleteFrom] = useState('');
 
     // State for the form used to add new items.
-    const [addForm, setAddForm] = useState({ name: '', province: '' });
+    const [addForm, setAddForm] = useState({ 
+        name: '', 
+        province: '', 
+        grainType: '', 
+        weight: '', 
+        type: '', 
+        price: '', 
+        range: '', 
+        enwf: '', 
+        ownerRepresentative: '', 
+        address: '', 
+        contactNumber: '' 
+    });
 
     // A mapping object to easily access the correct data array from the global state.
     const listDataKeys = {
@@ -36,34 +287,90 @@ const ManageData = () => {
         warehouses: 'warehouses',
         transactionTypes: 'transactionTypes',
         varieties: 'varieties',
+        mtsTypes: 'mtsTypes',
+        sdoList: 'sdoList',
+        pricing: 'pricing',
+        enwfRanges: 'enwfRanges',
+        ricemills: 'ricemills', 
     };
-    
+
     // Helper function to get the singular name for dynamic text (e.g., "Add Province").
     const getSingularListName = (listName) => {
-        if (listName === 'provinces') return 'Province';
-        if (listName === 'warehouses') return 'Warehouse';
-        if (listName === 'transactionTypes') return 'Transaction Type';
-        if (listName === 'varieties') return 'Variety';
-        return '';
+        switch (listName) {
+            case 'provinces': return 'Province';
+            case 'warehouses': return 'Warehouse';
+            case 'transactionTypes': return 'Transaction Type';
+            case 'varieties': return 'Variety';
+            case 'mtsTypes': return 'MTS Type';
+            case 'sdoList': return 'SDO';
+            case 'pricing': return 'Pricing Item';
+            case 'enwfRanges': return 'ENWF Range';
+            case 'ricemills': return 'Ricemill'; 
+            default: return '';
+        }
     };
 
     // --- Modal Functions ---
-    // Opens the edit modal and populates the form with the selected item's data.
-    const openEditModal = (item, listName) => {
-        // Ensure province is only set if it exists on the item.
-        setEditForm({ name: item.name, province: item.province || '' });
-        setOriginalItem(item);
-        setListToEdit(listName);
-        setIsEditModalOpen(true);
-    };
+// Opens the edit modal and populates the form with the selected item's data.
+const openEditModal = (item, listName) => {
+    let newEditForm = {};
+    switch (listName) {
+        case 'provinces':
+            newEditForm = { name: item.name || '' };
+            break;
+        case 'warehouses':
+            newEditForm = { name: item.name || '', province: item.province || '' };
+            break;
+        case 'transactionTypes':
+            newEditForm = { name: item.name || '' };
+            break;
+        case 'varieties':
+            newEditForm = { name: item.name || '', grainType: item.grainType || '' };
+            break;
+        case 'mtsTypes':
+            newEditForm = { name: item.name || '', weight: item.weight || '', grainType: item.grainType || '' };
+            break;
+        case 'ricemills':
+            newEditForm = {
+                name: item.name || '',
+                ownerRepresentative: item.ownerRepresentative || '',
+                address: item.address || '',
+                contactNumber: item.contactNumber || '',
+            };
+            break;
+        case 'sdoList':
+            newEditForm = { name: item.name || '', province: item.province || '' };
+            break;
+        case 'pricing':
+            newEditForm = { type: item.type || '', price: item.price !== undefined ? item.price : '' };
+            break;
+        case 'enwfRanges':
+            newEditForm = { range: item.range || '', enwf: item.enwf !== undefined ? item.enwf : '' };
+            break;
+        default:
+            newEditForm = { ...item };
+            break;
+    }
+    setEditForm(newEditForm);
+    setOriginalItem(item);
+    setListToEdit(listName);
+    setIsEditModalOpen(true);
+};
 
     // Closes the edit modal and resets all related state.
     const closeEditModal = () => {
         setIsEditModalOpen(false);
-        setEditForm({ name: '', province: '' });
+        setEditForm({ name: '', province: '', grainType: '', weight: '', type: '', price: '', range: '', enwf: '', moisture: '', ownerRepresentative: '', address: '', contactNumber: '' });
         setOriginalItem(null);
         setListToEdit('');
     };
+
+    // Handles changes to the edit form inputs.
+    const handleEditFormChange = (e) => {
+    const { name, value } = e.target;
+        setEditForm(prev => ({ ...prev, [name]: value }));
+    };
+
 
     // Opens the delete modal and sets the item and list to be deleted.
     const openDeleteModal = (item, listName) => {
@@ -80,426 +387,715 @@ const ManageData = () => {
     };
 
     // --- CRUD Functions ---
-    // Handles adding a new item to the active list.
-    const handleAdd = (e, listName) => {
-        e.preventDefault();
-        const newItemName = addForm.name.trim();
-        if (!newItemName) return; // Don't add if the name is empty.
+const handleAdd = (e, listName) => {
+    e.preventDefault();
+    const dataKey = listDataKeys[listName];
+    let updatedList;
 
-        const dataKey = listDataKeys[listName];
+    if (listName === 'ricemills') {
+        const { name, ownerRepresentative, address, contactNumber } = addForm;
+        if (!name || !ownerRepresentative || !address || !contactNumber) {
+            alert('Please fill out all ricemill fields.');
+            return;
+        }
+        if (data.ricemills.some(rm => rm.name.toLowerCase() === name.toLowerCase())) {
+            alert('A ricemill with this name already exists.');
+            return;
+        }
+        updatedList = [...data.ricemills, { id: generateUniqueId(), name, ownerRepresentative, address, contactNumber }];
+    } else if (listName === 'pricing') {
+        const trimmedGrainType = addForm.grainType.trim();
+        const parsedPrice = parseFloat(addForm.price);
+        if (!trimmedGrainType || isNaN(parsedPrice)) {
+            alert('Please enter a valid grain type and price.');
+            return;
+        }
+        if (data.pricing[trimmedGrainType]) {
+            alert('A price for this grain type already exists. Please edit the existing entry instead.');
+            setAddForm({ ...addForm, price: '' });
+            return;
+        }
+        updatedList = { ...data[dataKey], [trimmedGrainType]: parsedPrice };
+    } else if (listName === 'varieties') {
+        const trimmedName = addForm.name.trim();
+        if (!trimmedName || !addForm.grainType) {
+            alert('Please enter a name and select a grain type.');
+            return;
+        }
+        updatedList = [...data[dataKey], { name: trimmedName, grainType: addForm.grainType }];
+    } else if (listName === 'mtsTypes') {
+        const trimmedName = addForm.name.trim();
+        const parsedWeight = parseFloat(addForm.weight);
+        if (!trimmedName || isNaN(parsedWeight) || !addForm.grainType) {
+            alert('Please enter a valid name, weight, and grain type.');
+            return;
+        }
+        updatedList = [...data[dataKey], { name: trimmedName, weight: parsedWeight, grainType: addForm.grainType }];
+    } else if (listName === 'warehouses' || listName === 'sdoList') {
+        if (!addForm.name.trim() || !addForm.province) {
+            alert('Please enter a name and select a province.');
+            return;
+        }
+        const newItem = {
+            id: uuidv4(),
+            name: addForm.name.trim(),
+            province: addForm.province
+        };
+        updatedList = [...data[dataKey], newItem];
+    } else if (listName === 'enwfRanges') {
+        if (!addForm.range.trim() || addForm.enwf === '' || isNaN(parseFloat(addForm.enwf))) {
+            alert('Please enter a valid range and ENWF multiplier.');
+            return;
+        }
+        updatedList = [...data[dataKey], { range: addForm.range.trim(), enwf: parseFloat(addForm.enwf) }];
+    } else { // Default case for simple lists (provinces, transactionTypes)
+        if (!addForm.name.trim()) {
+            alert('Please enter a valid name.');
+            return;
+        }
+        // ✅ FIX: The old code only added a name. It has been updated to correctly create a new object with both the "id" and "name" properties.
+        const newItem = {
+            id: uuidv4(),
+            name: addForm.name.trim()
+        };
+        updatedList = [...data[dataKey], newItem];
+    }
+
+    updateAppData({ [dataKey]: updatedList });
+    setAddForm({ name: '', province: '', grainType: '', weight: '', type: '', price: '', range: '', enwf: '', ownerRepresentative: '', address: '', contactNumber: '' });
+};
+
+
+    const handleUpdate = () => {
+        const dataKey = listDataKeys[listToEdit] || listToEdit;
         let updatedList;
-        if (listName === 'warehouses') {
-            // Warehouses require a province to be selected.
-            if (!addForm.province) {
-                alert('Please select a province for the warehouse.');
+        
+        // ✅ FIX: The variables were named incorrectly.
+        // The editForm state has keys 'name', 'ownerRepresentative', etc., not 'editedName'.
+        if (listToEdit === 'ricemills') {
+            const { name, ownerRepresentative, address, contactNumber } = editForm;
+            const updatedRicemill = {
+                // ✅ Use the original item's ID to keep it unique
+                id: originalItem.id, 
+                name,
+                ownerRepresentative,
+                address,
+                contactNumber
+            };
+            updatedList = data.ricemills.map(rm => 
+                // ✅ Use a stable ID for comparison, not the name, which can change.
+                rm.id === originalItem.id ? updatedRicemill : rm
+            );
+        } else if (listToEdit === 'pricing') {
+            if (!editForm.type.trim() || isNaN(parseFloat(editForm.price))) {
+                alert('Please enter a valid grain type and price.');
                 return;
             }
-            updatedList = [...data[dataKey], { name: newItemName, province: addForm.province }];
+            const newPricing = { ...data.pricing };
+            if (editForm.type.trim() !== originalItem.type) {
+                delete newPricing[originalItem.type];
+            }
+            newPricing[editForm.type.trim()] = parseFloat(editForm.price);
+            updatedList = newPricing;
         } else {
-            // Other lists just need a name.
-            updatedList = [...data[dataKey], { name: newItemName }];
+            updatedList = data[dataKey].map(item => {
+                const isMatch = (listToEdit === 'enwfRanges' && item.range === originalItem.range) ||
+                    (listToEdit !== 'enwfRanges' && item.name === originalItem.name);
+
+                if (isMatch) {
+                    switch (listToEdit) {
+                        case 'varieties':
+                            return { ...item, name: editForm.name.trim(), grainType: editForm.grainType.trim() };
+                        case 'mtsTypes':
+                            const parsedWeight = parseFloat(editForm.weight);
+                            return { ...item, name: editForm.name.trim(), weight: parsedWeight, grainType: editForm.grainType.trim() };
+                        case 'warehouses':
+                            return { ...item, name: editForm.name.trim(), province: editForm.province.trim() };
+                        case 'sdoList':
+                            return { ...item, name: editForm.name.trim(), province: editForm.province.trim() };
+                        case 'enwfRanges':
+                            const parsedEnwf = parseFloat(editForm.enwf);
+                            return { ...item, range: editForm.range.trim(), enwf: parsedEnwf };
+                        default:
+                            return { ...item, name: editForm.name.trim() };
+                    }
+                }
+                return item;
+            });
         }
-
-        // Update the global state with the new list.
-        updateAppData({ [dataKey]: updatedList });
-        // Reset the add form for the next entry.
-        setAddForm({ name: '', province: '' });
-    };
-
-    // Confirms and performs the deletion of an item.
-    const confirmDelete = () => {
-        const dataKey = listDataKeys[listToDeleteFrom];
-        // Create a new list by filtering out the item to be deleted.
-        const updatedList = data[dataKey].filter(item => item.name !== itemToDelete.name);
-        // Update the global state.
-        updateAppData({ [dataKey]: updatedList });
-        closeDeleteModal();
-    };
-
-    // Updates an existing item with the new form data.
-    const handleUpdate = () => {
-        const dataKey = listDataKeys[listToEdit];
-        // Map over the list to find the original item and replace it with the updated version.
-        const updatedList = data[dataKey].map(item =>
-            item.name === originalItem.name ? { ...item, name: editForm.name, province: editForm.province } : item
-        );
-        // Update the global state.
+        
         updateAppData({ [dataKey]: updatedList });
         closeEditModal();
     };
+    
+    const confirmDelete = () => {
+        const dataKey = listDataKeys[listToDeleteFrom] || listToDeleteFrom;
+        
+        if (dataKey === 'ricemills') {
+            // ✅ FIX: Use the unique ID to filter the ricemill.
+            const updatedRicemills = data.ricemills.filter(rm => rm.id !== itemToDelete.id);
+            updateAppData({ [dataKey]: updatedRicemills }); 
+        } else if (dataKey === 'pricing') {
+            const updatedPricing = { ...data.pricing };
+            delete updatedPricing[itemToDelete.type];
+            updateAppData({ [dataKey]: updatedPricing }); 
+        } else {
+            const updatedList = data[dataKey].filter(item => {
+                let isMatch = false;
+                switch (listToDeleteFrom) {
+                    case 'enwfRanges':
+                        isMatch = item.range === itemToDelete.range;
+                        break;
+                    case 'pricing':
+                        isMatch = item.type === itemToDelete.type;
+                        break;
+                    default:
+                        isMatch = item.name === itemToDelete.name;
+                        break;
+                }
+                return !isMatch;
+            });
+            updateAppData({ [dataKey]: updatedList });
+        }
+    
+        closeDeleteModal();
+    };
 
-    // A render function that dynamically displays the content for the active tab.
+    // This function renders the content based on the active tab
     const renderListContent = () => {
-        // Sort the data arrays before rendering to ensure a consistent, alphabetical order.
-        const sortedData = {
-            provinces: [...data.provinces].sort((a, b) => a.name.localeCompare(b.name)),
-            warehouses: [...data.warehouses].sort((a, b) => a.name.localeCompare(b.name)),
-            transactionTypes: [...data.transactionTypes].sort((a, b) => a.name.localeCompare(b.name)),
-            varieties: [...data.varieties].sort((a, b) => a.name.localeCompare(b.name)),
-        };
+    // A mapping from display names to data keys for each list.
+    // This makes the renderTable function generic and reusable.
+    const columnMaps = {
+        provinces: {
+            'Name': 'name',
+        },
+        warehouses: {
+            'Name': 'name',
+            'Province': 'province',
+        },
+        transactionTypes: {
+            'Name': 'name',
+        },
+        varieties: {
+            'Variety Name': 'name',
+            'Grain Type': 'grainType',
+        },
+        mtsTypes: {
+            'MTS Name': 'name',
+            'Weight': 'weight',
+            'Grain Type': 'grainType',
+        },
+        ricemills: {
+            'Ricemill Name': 'name',
+            'Owner/Representative': 'ownerRepresentative',
+            'Address': 'address',
+            'Contact Number': 'contactNumber',
+        },
+        sdoList: {
+            'Name': 'name',
+            'Province': 'province',
+        },
+        pricing: {
+            'Grain Type': 'type',
+            'Price (per kg)': 'price',
+        },
+        enwfRanges: {
+            'Moisture Content Range': 'moisture',
+            'ENWF Multiplier': 'enwf',
+        },
+    };
 
-        const lists = {
-            provinces: { title: 'Provinces', data: sortedData.provinces },
-            warehouses: { title: 'Warehouses', data: sortedData.warehouses },
-            transactionTypes: { title: 'Transaction Types', data: sortedData.transactionTypes },
-            varieties: { title: 'Varieties', data: sortedData.varieties }
-        };
+    const groupSdosByProvince = () => {
+        const grouped = {};
+        (data.sdoList || []).sort((a, b) => a.name.localeCompare(b.name)).forEach(sdo => {
+            const province = sdo.province || 'No Province';
+            if (!grouped[province]) {
+                grouped[province] = [];
+            }
+            grouped[province].push(sdo);
+        });
+        return grouped;
+    };
 
-        const currentList = lists[activeList];
+    const sortedData = {
+        provinces: [...(data.provinces || [])].sort((a, b) => a.name.localeCompare(b.name)),
+        warehouses: [...(data.warehouses || [])].sort((a, b) => a.name.localeCompare(b.name)),
+        transactionTypes: [...(data.transactionTypes || [])].sort((a, b) => a.name.localeCompare(b.name)),
+        varieties: [...(data.varieties || [])].sort((a, b) => a.name.localeCompare(b.name)),
+        mtsTypes: [...(data.mtsTypes || [])].sort((a, b) => a.name.localeCompare(b.name)),
+        sdoList: [...(data.sdoList || [])].sort((a, b) => a.name.localeCompare(b.name)),
+        ricemills: [...(data.ricemills || [])].sort((a, b) => a.name.localeCompare(b.name)),
+        enwfRanges: [...(data.enwfRanges || [])].sort((a, b) => parseFloat(a.range) - parseFloat(b.range)),
+    };
 
-        return (
-            <ListSection>
-                {/* Form for adding a new item */}
-                <ListForm onSubmit={(e) => handleAdd(e, activeList)}>
-                    <input
-                        type="text"
-                        value={addForm.name}
-                        onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
-                        placeholder={`Enter ${getSingularListName(activeList)} Name`}
-                    />
-                    {/* Conditionally render the province dropdown for warehouses */}
-                    {activeList === 'warehouses' && (
+    // The renderTable function now gets columns directly from the columnMaps.
+    const renderTable = (list, listName, editFn, deleteFn) => {
+    const columns = Object.keys(columnMaps[listName]);
+
+    return (
+        <DataTable>
+            <thead>
+                <tr>
+                    {columns.map(col => <th key={col}>{col}</th>)}
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {list.length > 0 ? (
+                    list.map((item) => (
+                        <DataRow key={item.id}>
+                            {columns.map(columnTitle => {
+                                const dataKey = columnMaps[listName][columnTitle];
+                                // FIX: Use a composite key to ensure uniqueness for each <td>.
+                                // This combines the unique item ID with the column key.
+                                return <td key={`${item.id}-${dataKey}`}>{item[dataKey]}</td>;
+                            })}
+                            <td>
+                                <ActionButton onClick={() => editFn(item, listName)}>Edit</ActionButton>
+                                <ActionButton $delete onClick={() => deleteFn(item, listName)}>Delete</ActionButton>
+                            </td>
+                        </DataRow>
+                    ))
+                ) : (
+                    <DataRow key="no-data-row"> 
+                        <td colSpan={columns.length + 1}>
+                            <Placeholder>No {getSingularListName(listName).toLowerCase()} found.</Placeholder>
+                        </td>
+                    </DataRow>
+                )}
+            </tbody>
+        </DataTable>
+    );
+};
+
+    switch (activeList) {
+        case 'ricemills':
+            return (
+                <ListSection>
+                    <ListForm onSubmit={(e) => handleAdd(e, 'ricemills')}>
+                        <input
+                            type="text"
+                            value={addForm.name}
+                            onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
+                            placeholder="Ricemill Name"
+                        />
+                        <input
+                            type="text"
+                            value={addForm.ownerRepresentative}
+                            onChange={(e) => setAddForm({ ...addForm, ownerRepresentative: e.target.value })}
+                            placeholder="Owner/Representative"
+                        />
+                        <input
+                            type="text"
+                            value={addForm.address}
+                            onChange={(e) => setAddForm({ ...addForm, address: e.target.value })}
+                            placeholder="Address"
+                        />
+                        <input
+                            type="tel"
+                            value={addForm.contactNumber}
+                            onChange={(e) => setAddForm({ ...addForm, contactNumber: e.target.value })}
+                            placeholder="Contact Number"
+                        />
+                        <button type="submit">Add Ricemill</button>
+                    </ListForm>
+                    {renderTable(
+                        sortedData.ricemills,
+                        'ricemills',
+                        (item) => openEditModal(item, 'ricemills'),
+                        (item) => openDeleteModal(item, 'ricemills')
+                    )}
+                </ListSection>
+            );
+        case 'sdoList':
+            const groupedSdos = groupSdosByProvince();
+            return (
+                <ListSection>
+                    <ListForm onSubmit={(e) => handleAdd(e, 'sdoList')}>
+                        <input
+                            type="text"
+                            value={addForm.name}
+                            onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
+                            placeholder="Enter SDO Name"
+                        />
                         <select
                             value={addForm.province}
                             onChange={(e) => setAddForm({ ...addForm, province: e.target.value })}
                         >
                             <option value="">Select Province</option>
-                            {/* Use sorted provinces for the add form dropdown */}
                             {sortedData.provinces.map((province, index) => (
                                 <option key={index} value={province.name}>{province.name}</option>
                             ))}
                         </select>
-                    )}
-                    <button type="submit">Add</button>
-                </ListForm>
-                {/* Table to display the list of items */}
-                <DataTable>
-                    <thead>
-                        <tr>
-                            <th>{currentList.title}</th>
-                            {/* Conditionally render the Province header for warehouses */}
-                            {activeList === 'warehouses' && <th>Province</th>}
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {currentList.data.length > 0 ? (
-                            currentList.data.map((item, index) => (
-                                <DataRow key={index}>
-                                    <td>{item.name}</td>
-                                    {/* Conditionally render the province name */}
-                                    {activeList === 'warehouses' && <td>{item.province}</td>}
-                                    <td>
-                                        <ActionButton onClick={() => openEditModal(item, activeList)}>Edit</ActionButton>
-                                        <ActionButton $delete onClick={() => openDeleteModal(item, activeList)}>Delete</ActionButton>
-                                    </td>
-                                </DataRow>
-                            ))
-                        ) : (
-                            // Placeholder message when the list is empty.
-                            <DataRow>
-                                <td colSpan={activeList === 'warehouses' ? 3 : 2}>
-                                    <Placeholder>No {currentList.title.toLowerCase()} found.</Placeholder>
-                                </td>
-                            </DataRow>
+                        <button type="submit">Add</button>
+                    </ListForm>
+                    {Object.keys(groupedSdos).sort().map(province => (
+                        <div key={province}>
+                            <ProvinceHeader>{province}</ProvinceHeader>
+                            {renderTable(groupedSdos[province], 'sdoList', (item) => openEditModal(item, 'sdoList'), (item) => openDeleteModal(item, 'sdoList'))}
+                        </div>
+                    ))}
+                </ListSection>
+            );
+        case 'pricing':
+            // The pricing data from the CSV is an object, so we convert it to an array of objects
+            // with a unique 'id' for React to track correctly.
+            const pricingList = Object.keys(data.pricing || {}).map(type => ({ type, price: data.pricing[type], id: type }));
+            return (
+                <ListSection>
+                    <ListForm onSubmit={(e) => handleAdd(e, 'pricing')}>
+                        <select
+                            name="grainType"
+                            value={addForm.grainType}
+                            onChange={(e) => setAddForm({ ...addForm, grainType: e.target.value })}
+                            required
+                        >
+                            <option value="">Select Grain Type</option>
+                            {data.grainTypes.map(gt => (
+                                <option key={gt} value={gt}>{gt}</option>
+                            ))}
+                        </select>
+                        <input
+                            type="number"
+                            step="0.01"
+                            value={addForm.price}
+                            onChange={(e) => setAddForm({ ...addForm, price: e.target.value })}
+                            placeholder="Enter Price (per kg)"
+                        />
+                        <button type="submit">Add</button>
+                    </ListForm>
+                    {renderTable(pricingList, 'pricing', (item) => openEditModal(item, 'pricing'), (item) => openDeleteModal(item, 'pricing'))}
+                </ListSection>
+            );
+        case 'enwfRanges':
+            return (
+                <ListSection>
+                    <ListForm onSubmit={(e) => handleAdd(e, 'enwfRanges')}>
+                        <input
+                            type="text"
+                            value={addForm.range}
+                            onChange={(e) => setAddForm({ ...addForm, range: e.target.value })}
+                            placeholder="Enter Range (e.g., 22.0-22.9)"
+                        />
+                        <input
+                            type="number"
+                            step="0.01"
+                            value={addForm.enwf}
+                            onChange={(e) => setAddForm({ ...addForm, enwf: e.target.value })}
+                            placeholder="Enter Multiplier (e.g., 0.96)"
+                        />
+                        <button type="submit">Add</button>
+                    </ListForm>
+                    {renderTable(sortedData.enwfRanges, 'enwfRanges', (item) => openEditModal(item, 'enwfRanges'), (item) => openDeleteModal(item, 'enwfRanges'))}
+                </ListSection>
+            );
+        default:
+            const currentData = sortedData[activeList] || [];
+            return (
+                <ListSection>
+                    <ListForm onSubmit={(e) => handleAdd(e, activeList)}>
+                        <input
+                            type="text"
+                            value={addForm.name}
+                            onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
+                            placeholder={`Enter ${getSingularListName(activeList)} Name`}
+                        />
+                        {activeList === 'warehouses' && (
+                            <select
+                                value={addForm.province}
+                                onChange={(e) => setAddForm({ ...addForm, province: e.target.value })}
+                            >
+                                <option value="">Select Province</option>
+                                {sortedData.provinces.map((province, index) => (
+                                    <option key={index} value={province.name}>{province.name}</option>
+                                ))}
+                            </select>
                         )}
-                    </tbody>
-                </DataTable>
-            </ListSection>
-        );
-    };
+                        {(activeList === 'varieties' || activeList === 'mtsTypes') && (
+                            <>
+                                <select
+                                    value={addForm.grainType}
+                                    onChange={(e) => setAddForm({ ...addForm, grainType: e.target.value })}
+                                >
+                                    <option value="">Select Grain Type</option>
+                                    {data.grainTypes.map(gt => (
+                                        <option key={gt} value={gt}>{gt}</option>
+                                    ))}
+                                </select>
+                                {activeList === 'mtsTypes' && (
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={addForm.weight}
+                                        onChange={(e) => setAddForm({ ...addForm, weight: e.target.value })}
+                                        placeholder="Enter Weight (kgs)"
+                                    />
+                                )}
+                            </>
+                        )}
+                        <button type="submit">Add</button>
+                    </ListForm>
+                    {renderTable(currentData, activeList, (item) => openEditModal(item, activeList), (item) => openDeleteModal(item, activeList))}
+                </ListSection>
+            );
+    }
+}; // End of renderListContent function
+
+    if (!data) {
+        return <p>Loading data management tools...</p>;
+    }
 
     return (
         <ManageContainer>
             <Header>Manage Data</Header>
-            {/* Tab navigation for switching between lists */}
             <TabNavigation>
+                <TabButton $active={activeList === 'ricemills'} onClick={() => setActiveList('ricemills')}>Ricemill Profiles</TabButton>
                 <TabButton $active={activeList === 'provinces'} onClick={() => setActiveList('provinces')}>Provinces</TabButton>
                 <TabButton $active={activeList === 'warehouses'} onClick={() => setActiveList('warehouses')}>Warehouses</TabButton>
                 <TabButton $active={activeList === 'transactionTypes'} onClick={() => setActiveList('transactionTypes')}>Transaction Types</TabButton>
                 <TabButton $active={activeList === 'varieties'} onClick={() => setActiveList('varieties')}>Varieties</TabButton>
+                <TabButton $active={activeList === 'mtsTypes'} onClick={() => setActiveList('mtsTypes')}>MTS Types</TabButton>
+                <TabButton $active={activeList === 'sdoList'} onClick={() => setActiveList('sdoList')}>SDO List</TabButton>
+                <TabButton $active={activeList === 'pricing'} onClick={() => setActiveList('pricing')}>Pricing</TabButton>
+                <TabButton $active={activeList === 'enwfRanges'} onClick={() => setActiveList('enwfRanges')}>ENWF Range</TabButton>
             </TabNavigation>
             <ContentWrapper>
-                {/* Render the content of the active list */}
                 {renderListContent()}
             </ContentWrapper>
 
-            {/* Edit Modal (conditionally rendered) */}
-            {isEditModalOpen && (
-                <ModalOverlay>
-                    <ModalContent>
-                        <ModalHeader>Edit {getSingularListName(listToEdit)}</ModalHeader>
-                        <ModalForm onSubmit={(e) => { e.preventDefault(); handleUpdate(); }}>
+{isEditModalOpen && (
+    <ModalOverlay>
+        <ModalContent>
+            <ModalHeader>Edit {getSingularListName(listToEdit)}</ModalHeader>
+            <ListForm onSubmit={(e) => { e.preventDefault(); handleUpdate(); }}>
+                {listToEdit === 'enwfRanges' ? (
+                    <>
+                        <label>
+                            Moisture Content Range
                             <input
                                 type="text"
-                                value={editForm.name}
-                                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                                placeholder="Enter Name"
+                                name="range"
+                                value={editForm.range}
+                                onChange={handleEditFormChange}
                             />
-                            {/* Conditionally render the province dropdown for editing warehouses */}
-                            {listToEdit === 'warehouses' && (
-                                <select
-                                    value={editForm.province}
-                                    onChange={(e) => setEditForm({ ...editForm, province: e.target.value })}
-                                >
-                                    <option value="">Select Province</option>
-                                    {/* Use sorted provinces for the edit modal dropdown */}
-                                    {data.provinces.sort((a,b) => a.name.localeCompare(b.name)).map((province, index) => (
-                                        <option key={index} value={province.name}>{province.name}</option>
-                                    ))}
-                                </select>
-                            )}
-                            <ButtonContainer>
-                                <ModalButton type="submit">Save</ModalButton>
-                                <ModalButton $cancel type="button" onClick={closeEditModal}>Cancel</ModalButton>
-                            </ButtonContainer>
-                        </ModalForm>
-                    </ModalContent>
-                </ModalOverlay>
-            )}
-
-            {/* Delete Modal (conditionally rendered) */}
-            {isDeleteModalOpen && (
-                <ModalOverlay>
-                    <ModalContent>
-                        <ModalHeader>Confirm Deletion</ModalHeader>
-                        <DeleteMessage>
-                            Are you sure you want to delete **"{itemToDelete.name}"**? This action cannot be undone.
-                        </DeleteMessage>
-                        <ButtonContainer>
-                            <ModalButton $cancel onClick={closeDeleteModal}>Cancel</ModalButton>
-                            <ModalButton onClick={confirmDelete}>Delete</ModalButton>
-                        </ButtonContainer>
-                    </ModalContent>
-                </ModalOverlay>
-            )}
+                        </label>
+                        <label>
+                            ENWF Multiplier
+                            <input
+                                type="number"
+                                step="0.01"
+                                name="enwf"
+                                value={editForm.enwf}
+                                onChange={handleEditFormChange}
+                            />
+                        </label>
+                    </>
+                ) : listToEdit === 'mtsTypes' ? (
+                    <>
+                        <label>
+                            MTS Name
+                            <input
+                                type="text"
+                                name="name"
+                                value={editForm.name}
+                                onChange={handleEditFormChange}
+                            />
+                        </label>
+                        <label>
+                            Weight (kgs)
+                            <input
+                                type="number"
+                                step="0.01"
+                                name="weight"
+                                value={editForm.weight}
+                                onChange={handleEditFormChange}
+                            />
+                        </label>
+                        <label>
+                            Grain Type
+                            <select
+                                name="grainType"
+                                value={editForm.grainType}
+                                onChange={handleEditFormChange}
+                            >
+                                <option value="">Select Grain Type</option>
+                                {data.grainTypes.map(gt => (
+                                    <option key={gt} value={gt}>{gt}</option>
+                                ))}
+                            </select>
+                        </label>
+                    </>
+                ) : listToEdit === 'ricemills' ? (
+                    <>
+                        <label>
+                            Ricemill Name
+                            <input
+                                type="text"
+                                name="name"
+                                value={editForm.name}
+                                onChange={handleEditFormChange}
+                            />
+                        </label>
+                        <label>
+                            Owner/Representative
+                            <input
+                                type="text"
+                                name="ownerRepresentative"
+                                value={editForm.ownerRepresentative}
+                                onChange={handleEditFormChange}
+                            />
+                        </label>
+                        <label>
+                            Address
+                            <input
+                                type="text"
+                                name="address"
+                                value={editForm.address}
+                                onChange={handleEditFormChange}
+                            />
+                        </label>
+                        <label>
+                            Contact Number
+                            <input
+                                type="tel"
+                                name="contactNumber"
+                                value={editForm.contactNumber}
+                                onChange={handleEditFormChange}
+                            />
+                        </label>
+                    </>
+                ) : listToEdit === 'varieties' ? (
+                    <>
+                        <label>
+                            Variety Name
+                            <input
+                                type="text"
+                                name="name"
+                                value={editForm.name}
+                                onChange={handleEditFormChange}
+                            />
+                        </label>
+                        <label>
+                            Grain Type
+                            <select
+                                name="grainType"
+                                value={editForm.grainType}
+                                onChange={handleEditFormChange}
+                            >
+                                <option value="">Select Grain Type</option>
+                                {data.grainTypes.map(gt => (
+                                    <option key={gt} value={gt}>{gt}</option>
+                                ))}
+                            </select>
+                        </label>
+                    </>
+                ) : listToEdit === 'pricing' ? (
+                    <>
+                        <label>
+                            Grain Type
+                            <input
+                                type="text"
+                                name="type"
+                                value={editForm.type}
+                                onChange={handleEditFormChange}
+                                disabled
+                            />
+                        </label>
+                        <label>
+                            Price (per kg)
+                            <input
+                                type="number"
+                                step="0.01"
+                                name="price"
+                                value={editForm.price}
+                                onChange={handleEditFormChange}
+                            />
+                        </label>
+                    </>
+                ) : listToEdit === 'warehouses' ? (
+                    <>
+                        <label>
+                            Warehouse Name
+                            <input
+                                type="text"
+                                name="name"
+                                value={editForm.name}
+                                onChange={handleEditFormChange}
+                            />
+                        </label>
+                        <label>
+                            Province
+                            <select
+                                name="province"
+                                value={editForm.province}
+                                onChange={handleEditFormChange}
+                            >
+                                <option value="">Select Province</option>
+                                {data.provinces.map((p) => (
+                                    <option key={p.id} value={p.name}>{p.name}</option>
+                                ))}
+                            </select>
+                        </label>
+                    </>
+                ) : listToEdit === 'sdoList' ? (
+                    <>
+                        <label>
+                            SDO Name
+                            <input
+                                type="text"
+                                name="name"
+                                value={editForm.name}
+                                onChange={handleEditFormChange}
+                            />
+                        </label>
+                        <label>
+                            Province
+                            <select
+                                name="province"
+                                value={editForm.province}
+                                onChange={handleEditFormChange}
+                            >
+                                <option value="">Select Province</option>
+                                {data.provinces.map((p) => (
+                                    <option key={p.id} value={p.name}>{p.name}</option>
+                                ))}
+                            </select>
+                        </label>
+                    </>
+                ) : (
+                    // Default case for simple lists (e.g., provinces, transactionTypes)
+                    <label>
+                        Name
+                        <input
+                            type="text"
+                            name="name"
+                            value={editForm.name}
+                            onChange={handleEditFormChange}
+                        />
+                    </label>
+                )}
+                <ModalButtonContainer>
+                    <ModalButton type="submit">Save Changes</ModalButton>
+                    <ModalButton type="button" $cancel onClick={closeEditModal}>Cancel</ModalButton>
+                </ModalButtonContainer>
+            </ListForm>
+        </ModalContent>
+    </ModalOverlay>
+)}
+{isDeleteModalOpen && (
+    <ModalOverlay>
+        <ModalContent>
+            <ModalHeader>Confirm Deletion</ModalHeader>
+            <p>Are you sure you want to delete <strong>{itemToDelete.name || itemToDelete.type || itemToDelete.range}</strong> from the list?</p>
+            <ModalButtonContainer>
+                <ModalButton $delete onClick={confirmDelete}>Delete</ModalButton>
+                <ModalButton $cancel onClick={closeDeleteModal}>Cancel</ModalButton>
+            </ModalButtonContainer>
+        </ModalContent>
+    </ModalOverlay>
+)}
         </ManageContainer>
     );
 };
 
 export default ManageData;
-
-// Styled Components
-const ManageContainer = styled.div`
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-`;
-
-const Header = styled.h2`
-    text-align: center;
-    color: #2c3e50;
-    margin-bottom: 20px;
-`;
-
-const TabNavigation = styled.nav`
-    display: flex;
-    justify-content: space-around;
-    background-color: #eef1f5;
-    border-bottom: 1px solid #ddd;
-    border-radius: 5px 5px 0 0;
-`;
-
-const TabButton = styled.button`
-    flex: 1;
-    padding: 15px;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    font-size: 1em;
-    font-weight: bold;
-    color: #666;
-    transition: all 0.3s ease;
-    border-bottom: 2px solid transparent;
-
-    &:hover {
-        color: #000;
-    }
-    
-    ${({ $active }) => $active && `
-        background-color: #fff;
-        color: #2c3e50;
-        border-bottom: 2px solid #3498db;
-    `}
-`;
-
-const ContentWrapper = styled.div`
-    padding: 20px;
-    background-color: #fff;
-    border-radius: 0 0 8px 8px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    transition: box-shadow 0.3s ease;
-`;
-
-const ListSection = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-`;
-
-const ListForm = styled.form`
-    display: flex;
-    gap: 10px;
-    
-    input, select {
-        flex-grow: 1;
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        font-size: 1em;
-        transition: box-shadow 0.3s ease;
-        
-        &:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.5);
-        }
-    }
-    
-    button {
-        padding: 10px 15px;
-        background-color: #3498db;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 1em;
-        font-weight: bold;
-        transition: background-color 0.3s ease, transform 0.2s ease;
-        
-        &:hover {
-            background-color: #2980b9;
-            transform: translateY(-2px);
-        }
-    }
-`;
-
-const DataTable = styled.table`
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-    
-    th, td {
-        border: 1px solid #ddd;
-        padding: 12px;
-        text-align: left;
-    }
-    
-    th {
-        background-color: #f2f2f2;
-        font-weight: bold;
-    }
-`;
-
-const DataRow = styled.tr`
-    &:nth-child(even) {
-        background-color: #f9f9f9;
-    }
-`;
-
-const ActionButton = styled.button`
-    padding: 6px 10px;
-    margin-right: 5px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    background-color: ${({ $delete }) => $delete ? '#e74c3c' : '#f39c12'};
-    color: white;
-    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
-    
-    &:hover {
-        background-color: ${({ $delete }) => $delete ? '#c0392b' : '#e67e22'};
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-`;
-
-const Placeholder = styled.div`
-    text-align: center;
-    padding: 50px;
-    color: #999;
-    font-size: 1.2em;
-    font-style: italic;
-`;
-
-// --- Modal Styles ---
-const ModalOverlay = styled.div`
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-`;
-
-const ModalContent = styled.div`
-    background-color: white;
-    padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    width: 90%;
-    max-width: 500px;
-`;
-
-const ModalHeader = styled.h3`
-    margin-top: 0;
-    margin-bottom: 20px;
-    color: #2c3e50;
-    text-align: center;
-`;
-
-const ModalForm = styled.form`
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-
-    input, select {
-        flex-grow: 1;
-        padding: 10px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        font-size: 1em;
-        transition: box-shadow 0.3s ease;
-        
-        &:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.5);
-        }
-    }
-`;
-
-const ButtonContainer = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 20px;
-`;
-
-const ModalButton = styled.button`
-    padding: 10px 15px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-    background-color: ${({ $cancel }) => $cancel ? '#95a5a6' : '#e74c3c'};
-    color: white;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    
-    &:hover {
-        background-color: ${({ $cancel }) => $cancel ? '#7f8c8d' : '#c0392b'};
-        transform: translateY(-2px);
-    }
-`;
-
-const DeleteMessage = styled.p`
-    margin-bottom: 20px;
-    text-align: center;
-    font-size: 1.1em;
-    color: #555;
-`;

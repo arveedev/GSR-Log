@@ -1,0 +1,101 @@
+Product Requirements Document: GSR Log App
+1. Project Overview
+The GSR Log App is a single-page web application designed for the simple and efficient logging of daily GSR-related data. The app provides a user-friendly interface for data entry, history tracking, and summary viewing. Its key focus is on local, client-side data persistence, storing all information directly in the user's browser via localStorage and enabling data export via CSV files. This approach makes the application lightweight, secure, and entirely self-contained.
+
+2. Goals & Objectives
+Primary Goal: To provide a simple, reliable, and locally-hosted application for daily data logging and management.
+
+Objective 1: To ensure seamless data persistence by storing all application data directly in the user's browser via localStorage.
+
+Objective 2: To offer a clear, tab-based user interface for intuitive navigation across all functionalities (Log Entry, History, Summary, Manage Data, Palay Deliveries).
+
+Objective 3: To enable users to easily manage lookup data (provinces, varieties, etc.) directly within the app's dedicated Manage Data tab.
+
+Objective 4: To create a seamless workflow for logging new entries by integrating Palay Deliveries and AI Entry forms with the main Log Entry and History tabs.
+
+Objective 5: To provide a mechanism to export the entire dataset as a single, structured CSV file for backup or external analysis.
+
+3. Plan & Strategy
+Phase 1: Foundational Development (Completed)
+This phase focused on building the core structure and initial data management functionalities of the application.
+
+Functionality:
+
+Log Entry Tab: A form for adding new daily data entries.
+
+History Tab: A comprehensive list view of all logged entries, with search and sort functionality.
+
+Summary Tab: Provides aggregated views and daily reports of the data.
+
+Manage Data Tab: A dedicated tab for managing lookup data with separate sub-tabs and functionalities for provinces, warehouses, transaction types, varieties, mts types, SDO list, pricing, and enwf range.
+
+Palay Delivery Tab: A dedicated form for entering palay deliveries, with an "isLogged" flag.
+
+Data Persistence: The ability to save all data to localStorage.
+
+Strategy:
+
+Develop a modular, multi-component React application, with each major feature (tab) residing in its own component.
+
+Prioritize a robust CRUD (Create, Read, Update, Delete) implementation that synchronizes with localStorage on every change.
+
+Phase 2: Refinement & Integration (Current Focus)
+The project is currently in the process of refining existing features and preparing for future integrations.
+
+Current Focus: We are currently working on adding more features and fixing runtime errors within the Manage Data tab. We have successfully fixed the handleEditFormChange and ButtonGroup runtime errors. The edit functionality for the Manage Data tab is now operational, with the edit modal styled to be compact and responsive to avoid screen overflow. The styling has also been corrected to prevent form elements from overlapping.
+
+Future Functionality:
+
+Palay Deliveries List: Add a table to the Log Entry tab that lists unlogged deliveries from the Palay Delivery tab.
+
+Auto-Population: A one-click workflow to populate the Log Entry form by selecting an unlogged delivery from the table. The user will be required to confirm the entry before it is added to the log history.
+
+AI (Authority to Issue) Entry Form: A new form that will connect with the log history and the future Milling Overview feature.
+
+Milling Overview: A future feature that monitors and records all milling activities, including palay issued and rice recoveries.
+
+4. Technical Details
+Frontend
+
+Framework: React
+
+Language: JavaScript (ES6+)
+
+Styling: We are exclusively using styled-components for all UI styling. The react-bootstrap library, which was temporarily introduced during debugging, has been removed as a dependency to prevent styling conflicts and maintain project consistency.
+
+Architecture: The application is built as a series of modular, self-contained components, with each major feature (tab) residing in its own file (e.g., LogEntry.jsx, LogHistory.jsx, ManageData.jsx, PalayDelivery.jsx).
+
+State Management: React's built-in useState and useEffect hooks will be used to manage component state, with data persistence handled by synchronizing with localStorage.
+
+Data Handling: The Papaparse library will be used for parsing CSV strings into JavaScript objects and unparsing objects back into CSV strings.
+
+Backend & Database
+
+Platform: N/A (Client-side only)
+
+Authentication: N/A (Single-user, single-device tool)
+
+Data Storage: The browser's localStorage API is the primary database.
+
+Data Structure: All data is managed as a single JavaScript object in memory, with separate keys in localStorage for each data list.
+
+5. Collaborative Workflow & Current Progress
+Workflow: To prevent accidental deletion of code and ensure we are always on the same page, I will always ask for the current or latest code for the specific file we are working on before making changes. All code provided in my responses will be complete and ready to be copied and pasted.
+
+Current Progress:
+
+The core application structure with tabs for Log Entry, History, Summary, and Manage Data is in place.
+
+The Palay Delivery tab with its entry form is implemented.
+
+All core CRUD functionalities for the lookup data within the Manage Data tab are operational. The edit functionality has been fixed and is now working correctly.
+
+The edit modal styling has been successfully updated to be compact and prevent scrolling or element overlap.
+
+The History tab has search and sort functionality.
+
+The Log Entry form and the History tab are connected, allowing new entries to be recorded.
+
+Data persistence using localStorage is fully functional.
+
+Our current focus, as you've directed, is on adding features and fixing runtime errors in the Manage Data tab before we can proceed with other integrations.

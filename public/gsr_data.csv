@@ -1,22 +1,160 @@
-province,ALBAY
-province,CATANDUANES
-warehouse,BSI Libon,ALBAY
-warehouse,GID 2,CATANDUANES
-warehouse,ABACORP,ALBAY
-warehouse,Leg GID,ALBAY
-variety,PDs
-variety,PDm
-variety,PWs
-variety,PWm
-variety,WD1
-transaction_type,RECEIPT
-transaction_type,ISSUE
+[provinces]
+id,name
+88eb5232-74d8-4753-9572-7e063755d194,ALBAY
+e9410dc7-7c59-4272-8f0b-dd3e078c41ba,CATANDUANES
 
-date,province,warehouse,bags,netkgs,per50,variety,transaction_type,remarks
-2025-09-16,CATANDUANES,GID 2,64,3172.2,63.444,WD1,RECEIPT,
-2025-09-16,CATANDUANES,GID 2,101,5000,100.000,PDs,ISSUE,
-2025-09-16,ALBAY,BSI Libon,322,17247.15,344.943,PDm,RECEIPT,
-2025-09-16,ALBAY,BSI Libon,144,6452.31,129.046,PWm,RECEIPT,transferred to PHF
-2025-09-16,ALBAY,ABACORP,100,5000,100.000,WD1,ISSUE,FTI
-2025-09-17,CATANDUANES,GID 2,64,3176.2,63.524,WD1,RECEIPT,
-2025-09-17,CATANDUANES,GID 2,101,5000,100.000,PDs,ISSUE,
+[warehouses]
+id,name,province
+7ac72c59-e8ae-427a-89fd-575fac17e13f,ABACORP,ALBAY
+61f6820b-965a-4307-9c4a-566e07e4b0a7,BSI Libon,ALBAY
+9d225d83-03cd-424f-9c46-c6c1522f4f0f,GID 2,CATANDUANES
+e86e4c4c-34c1-42c7-ac8a-a3c562c2ea7b,Leg GID,ALBAY
+006181cc-e8ef-4fbb-93e8-f6ad34c12970,Tabaco GID,ALBAY
+768e0f05-897f-46b0-9875-79076025d84f,Sy,ALBAY
+
+[transactionTypes]
+id,name
+860c74c8-3baf-4ddf-8190-22b4f3489daa,RECEIPT
+23243195-5858-41f3-ae4e-8f6147eebfd6,ISSUE
+741979f5-11e1-43e0-a582-6185b053be9d,PROCUREMENT
+e939c82e-bd1e-48bc-9d78-0d9d40e3897b,TRANSFER
+9f262f63-f6f2-4215-8d13-3ebcf53d3c9d,MILLING
+179e126d-82ca-468e-a718-b19be8f4af9e,SALES
+
+[varieties]
+id,name,grain_type
+85a730ed-a6ad-42ae-bb27-728a92a6f233,PDm,Palay
+391f0710-d542-456a-b075-e6e2025ce009,PDs,Palay
+f00601c4-dc7f-468a-8fe7-bc774b48e74b,PWm,Palay
+f991e320-c5a1-490b-baf5-54efe2baf62c,PWs,Palay
+b4799033-a9c7-49a2-97e5-4065375c3dca,WD1,Rice
+
+[mtsTypes]
+id,name,weight,grain_type
+9c6a6d08-ec63-4859-85ed-15098c9e8bba,PPMG50-BN,0.075,Rice
+8d6ae1df-6306-4445-b871-7722cc42503b,PPRE50-BN,0.095,Palay
+56cf9819-5ad0-40f2-9d82-e695df7fdf4d,PPRE50-SH,0.102,Palay
+
+[sdoList]
+id,name,province
+6a78fa8d-1acf-4a65-9103-4f51480b133c,FEBBY,ALBAY
+1e43ee3a-275b-43e5-a0bb-5e9e04f4936e,GAY,CATANDUANES
+3f84b4c0-ba7c-44ab-ac95-a7c3204ac395,JHO,ALBAY
+
+[pricing]
+id,type,price
+a0cd2542-5d7a-4927-991d-ad54b55f0fd3,Palay,23
+9a779d3d-e916-4a5d-b309-75c18ed32560,Rice,33
+2cd6329a-5828-4fcf-a15b-71f8034b64cd,Corn,12
+
+[enwfRanges]
+id,moisture,enwf
+09491cad-c1c9-49a1-ac40-57f8ad02e273,22.0,1.04
+5f7d4fec-825d-4ec2-ad2a-2577f78e1335,22.1,1.039
+b9e0f85d-1c63-488c-82f1-4412a881b4a4,22.2,1.038
+e0314dac-e672-4b3e-b705-cabdbfbd4aef,22.3,1.037
+426bc36f-7e4e-4b5f-958d-a74c8d35f9a2,22.4,1.036
+12b65430-003a-4376-9576-f15acf8c55a0,22.5,1.035
+33bd0998-f21f-4ecf-b198-8e8181d08622,22.6,1.034
+395be786-c46a-4dfb-b38c-49bc4a4dba30,22.7,1.033
+3876c844-d5f0-40b8-a86f-b378acd29143,22.8,1.032
+1fc3f272-3775-4e20-89a3-8493371de91d,22.9,1.031
+0599af0d-1e1c-49ae-9cf0-6dac5adc02cc,23.0,1.03
+1c54b193-3673-4087-ac9b-b900abc12dba,23.1,1.029
+beaee03c-0401-42cc-bb46-338424e61523,23.2,1.028
+733b3dd8-25db-4f87-ab1e-f218d4b25958,23.3,1.027
+e42d0f90-cf0e-407f-93cb-07fc93ed85bd,23.4,1.026
+19aa0a2d-6a5c-4fc0-802f-7e4f8b008bc4,23.5,1.025
+577bc2af-6094-4cf1-aa53-b972f715c79a,23.6,1.024
+26c2728b-85a8-4fa8-8544-bbc0bda68e20,23.7,1.023
+e9c8715a-d2d8-47e8-aee7-cd9509c940ce,23.8,1.022
+921d83d3-c04d-4797-8f69-bfcb3531eacc,23.9,1.021
+bfeb4064-0fb4-48fd-bb9a-93555621ad0c,24.0,1.02
+5a00d976-a693-432e-bdec-db275458985b,24.1,1.019
+aea8a7b3-3eaa-42ff-86fd-eb5bf3a7c884,24.2,1.018
+f7be6bbc-c061-45ba-8a51-9a5a596afcf0,24.3,1.017
+718a89aa-f1f0-4b76-b478-7a09ff0d676b,24.4,1.016
+8cce27a1-665c-43f0-b01e-efbf85fecdb6,24.5,1.015
+e306e516-4026-4c0d-ad92-8421f452d797,24.6,1.014
+ff180099-cfae-4583-b0a0-7ae0bd5d343e,24.7,1.013
+36f52327-555c-4ae1-b453-5ec658fb5bc0,24.8,1.012
+1a2ddf3b-e1a9-4995-a48c-383eee30c972,24.9,1.011
+cad004df-5088-444c-a22e-dc98f3c097f0,25.0,1.01
+77ea55fb-82cb-471c-9a38-1ed45371db80,25.1,1.009
+abed0358-61bb-46fa-a7bf-7754788cd87f,25.2,1.008
+a2f72f85-c402-4388-8c7f-6cbc1e6ff9d6,25.3,1.007
+220d8fe5-aef8-4e7d-bd37-b120b54c6d2a,25.4,1.006
+991cde4a-f344-47dc-8756-928896b1ac25,25.5,1.005
+cbf0aba4-fade-43ee-b8b8-f9513744b7b1,25.6,1.004
+1b38e79f-8c64-494e-a881-ecf9b11523e3,25.7,1.003
+1ad922bd-fe4a-4c54-8a5f-500fc633172f,25.8,1.002
+c301ea9d-8290-441a-b8d9-9840726a9064,25.9,1.001
+b6387db3-b1f1-4bfd-9e53-fd25acc2ee9b,26.0,1
+3ad78617-5528-476c-bacc-25440dfdeaa4,26.1,0.999
+b983f49f-81f7-4476-9856-817360be74d0,26.2,0.998
+df916471-d900-45fc-a78e-6fc5eb8a7ad7,26.3,0.997
+66cab3aa-40ce-4a52-9614-1af2fe5d8946,26.4,0.996
+2eca7a7b-7e89-4b96-ad5f-1388f007556a,26.5,0.995
+9273aca0-f323-472a-9327-5f19c70cdac8,26.6,0.994
+61150f71-a3c0-493f-9c46-8216d038025c,26.7,0.993
+2ea03644-305f-4138-8868-1191d675f94b,26.8,0.992
+2fbe17b8-9f02-4ada-843c-46d6e488f81d,26.9,0.991
+80ee7e3c-040d-4cfe-9382-995d3efe945c,27.0,0.99
+5787d910-0171-4390-9f22-290ac5d9d4b7,27.1,0.989
+dd0f5c39-e618-4783-a1aa-3f669608f8c8,27.2,0.988
+060f60eb-07c7-48fb-a41b-1e8ecd48cdee,27.3,0.987
+4543fc8b-4477-4aad-8352-030a655d3c2b,27.4,0.986
+11c56b2f-76e3-4fce-9a6a-4ac47053fa93,27.5,0.985
+43eccaa6-41ca-48ef-a3b7-4ec4488a0c5e,27.6,0.984
+5a90eae9-8697-4f39-9315-a252d3163441,27.7,0.983
+d1772686-ca8d-4aa8-861b-48e8cd33b390,27.8,0.982
+cc615c4b-3eb8-4172-abba-5204ef98996c,27.9,0.981
+064dd97e-43dc-4d84-a434-c83b4989207a,28.0,0.98
+64f52a2d-4fe4-4256-9c05-1d98a7d7a624,28.1,0.979
+dc5dd4b8-a993-479e-8be3-bbadb91ab4be,28.2,0.978
+4444083d-c3d7-4120-a613-e8597e55660b,28.3,0.977
+f603499c-7fda-4dbc-bb71-60df00d199f6,28.4,0.976
+95155ab1-3e16-483e-9038-b6d186ee6de1,28.5,0.975
+79278a3a-0aa2-4c54-9a99-1cb268aaa587,28.6,0.974
+f44da489-f720-4bd8-bfcd-a5e9a0bdf273,28.7,0.973
+bb37e2e6-b358-4fd5-9ab4-0922100e869f,28.8,0.972
+5b3dc60e-9036-4613-ab7c-448a9954150b,28.9,0.971
+b7a52174-1735-4641-8009-e00ef8b01b81,29.0,0.97
+74bf3ccb-e9d7-4d0f-b64e-07106b937093,29.1,0.969
+4eee49bd-f0c0-4937-92cd-34cb319d4b34,29.2,0.968
+6bd20bf5-9a64-4f73-bd37-87edeaa00c8c,29.3,0.967
+1d289966-1100-4609-932c-f1f64a031adb,29.4,0.966
+2ef06e92-fbf4-4851-8f81-720ae123e6b6,29.5,0.965
+099f3c72-206a-4c8e-a9d4-bffcf4961614,29.6,0.964
+f5748bfc-336a-4fa0-bc8b-1470c15a7e3c,29.7,0.963
+a3873dea-0bf8-4e9d-b426-ab29f3b78e75,29.8,0.962
+fd2aa702-c655-4601-aea9-0e98a85d997e,29.9,0.961
+
+[ricemills]
+id,name,owner_representative,address,contact_number
+83472398-28d3-4ef5-ab3c-8418d28cb47e,Barlet Ricemill,John Barlet,Legazpi City,0917-123-4567
+aa93f124-cdfe-419f-86fc-28a1fda9acb1,Palay Brothers Inc.,Peter Palay,Tabaco City,0917-765-4321
+2ad577a4-0777-4705-a470-c752856f4d51,San Mateo Ricemill,Maria San Mateo,Daraga,0919-987-6543
+mfq4r8vlfzncqlub29,NFA-Owned,Albay Branch,Virac,Catanduanes
+mfq5e99e8dv05cj1aaf,Den's Ricemill,Alden Serrano,Paclas,Libon
+
+[logEntries]
+id,date,province,warehouse,bags,netkgs,per50,variety,transaction_type,remarks,pr_number,wsr_number,name,barangay,municipality,entry_type,moisture_content,gross_kgs,mts_type,sack_weight,enwf,enw_kgs,basic_cost,pricer,pricer_cost,grand_total,sdo_name,is_logged,ricemill,ai_number,rice_recovery
+e0462f7f-78c4-433f-95ca-36cc2d4fdd85,2025-09-16,CATANDUANES,GID 2,64,3172.2,63.444,WD1,TRANSFER,,,,,,,,,,,,,,,,,,,,,,
+0a6cb8a6-7e3f-4fab-a7c2-302e63c1946d,2025-09-16,CATANDUANES,GID 2,101,5000,100,PDs,TRANSFER,,,,,,,,,,,,,,,,,,,,,,
+e61107af-3162-4f30-b245-113a62acf15f,2025-09-16,ALBAY,BSI Libon,322,17247.15,344.943,PDm,PROCUREMENT,,,,,,,,,,,,,,,,,,,,,,
+db630052-ebee-42e9-92f9-f210d99852a2,2025-09-16,ALBAY,BSI Libon,144,6452.31,129.046,PWm,TRANSFER,transferred to PHF,,,,,,,,,,,,,,,,,,,,,
+bf656643-e2ca-4be0-b6f5-4e9c4b3db653,2025-09-16,ALBAY,ABACORP,100,5000,100,WD1,SALES,FTI,,,,,,,,,,,,,,,,,,,,,
+d95b8b33-4140-4951-ad0c-78e95b7b4c2c,2025-09-17,CATANDUANES,GID 2,64,3176.2,63.524,WD1,TRANSFER,,,,,,,,,,,,,,,,,,,,,,
+b74788bb-20cc-4709-8603-90080c8757ce,2025-09-17,CATANDUANES,GID 2,101,5000,100,PDs,TRANSFER,,,,,,,,,,,,,,,,,,,,,,
+5df75875-8271-462a-b0a6-7807a0d9c3e8,2025-09-18,CATANDUANES,GID 2,64,3174.2,63.484,WD1,TRANSFER,NFA Owned Milling,,,,,,,,,,,,,,,,,,,,,
+5aa1850c-730f-4e0e-9986-3e196285a031,2025-09-18,CATANDUANES,GID 2,101,5000,100,PDs,TRANSFER,,,,,,,,,,,,,,,,,,,,,,
+c185c231-1833-440b-b55a-928c75e36cd8,2025-09-18,ALBAY,Tabaco GID,338,17500,350,PDs,MILLING,Barlet Ricemill,,,,,,,,,,,,,,,,,,,AI-2025-101,,
+8f6d0cee-5244-42b9-8b60-2bf58f287b24,2025-09-19,ALBAY,Sy,350,17500,350.000,PDs,MILLING,Batch 2 of 22,,,,,,,,,,,,,,,,,,,Barlet Ricemill,26318307,
+70a6eb24-6424-468f-b097-89171d146f8e,2025-09-19,ALBAY,Tabaco GID,1000,50000,1000.000,PDm,MILLING,Batch 2 of 8,,,,,,,,,,,,,,,,,,,Den's Ricemill,26318308,
+b724aaac-6a00-43ab-bf83-2651997bf057,2025-09-19,ALBAY,Leg GID,12,600,12.000,WD1,SALES,BJMP,,,,,,,,,,,,,,,,,,,,,
+2493c3d1-c3e6-407f-bc5e-50a5129edd73,2025-09-19,ALBAY,BSI Libon,196,10852.008,217.040,PDm,PROCUREMENT,,,,,,,,,,,,,,,,,,,,,,
+2263fb07-9746-4c27-a227-184286844878,2025-09-19,ALBAY,BSI Libon,106,5556.188,111.124,PDm,TRANSFER,from PHF,,,,,,,,,,,,,,,,,,,,,
+158c2fe8-e9d7-4efc-b50a-4c517e55292a,2025-09-19,CATANDUANES,GID 2,64,3170.2,63.404,WD1,TRANSFER,from Milling,,,,,,,,,,,,,,,,,,,,,
+8e0bfb1e-c5a9-4bc1-af78-fc77466f3723,2025-09-19,CATANDUANES,GID 2,101,5000,100.000,PDs,TRANSFER,for Milling,,,,,,,,,,,,,,,,,,,,,
+31002727-0027-4904-a583-9f6af57d15ed,2025-09-19,CATANDUANES,GID 2,10,500,10.000,WD1,SALES,BJMP,,,,,,,,,,,,,,,,,,,,,
