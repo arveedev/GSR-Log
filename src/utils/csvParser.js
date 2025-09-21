@@ -7,18 +7,31 @@ import { generateEnwfData } from '../context/AppDataContext';
 
 // Helper function to fetch the CSV file asynchronously.
 const fetchCsv = async () => {
-    try {
-        const response = await fetch('/gsr_data.csv');
-        if (!response.ok) {
-            console.error('Failed to fetch CSV file:', response.statusText);
-            return '';
-        }
-        const text = await response.text();
-        return text;
-    } catch (error) {
-        console.error('Error fetching CSV file:', error);
-        return '';
+  try {
+    const response = await fetch('/gsr_data.csv');
+    if (!response.ok) {
+      console.error('Failed to fetch CSV file:', response.statusText);
+      return '';
     }
+    const text = await response.text();
+    return text;
+  } catch (error) {
+    console.error('Error fetching CSV file:', error);
+    return '';
+  }
+};
+
+// Helper function to correctly convert snake_case to camelCase.
+const toCamelCase = (str) => {
+  if (str.toLowerCase() === 'moisture') {
+    return 'range';
+  }
+  return str.replace(/_([a-z])/g, (match, p1) => p1.toUpperCase());
+};
+
+// Helper function to convert camelCase to snake_case for headers
+const toSnakeCase = (str) => {
+  return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
 };
 
 /**
@@ -27,160 +40,165 @@ const fetchCsv = async () => {
  * @returns {object} A structured object containing all the parsed data lists.
  */
 export const parseAppData = (csvString) => {
-    const data = {
-        provinces: [],
-        warehouses: [],
-        transactionTypes: [],
-        varieties: [],
-        mtsTypes: [],
-        enwfRanges: [],
-        pricing: {},
-        sdoList: [],
-        logEntries: [],
-        ricemills: [],
-    };
+  const data = {
+    provinces: [],
+    warehouses: [],
+    transactionTypes: [],
+    varieties: [],
+    mtsTypes: [],
+    enwfRanges: [],
+    pricing: {},
+    sdoList: [],
+    logEntries: [],
+    ricemills: [],
+    palayPricing: [],
+    ricePricing: [],
+  };
 
-    if (!csvString) {
-        return data;
-    }
-
-    const lines = csvString.split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0);
-    let currentSection = null;
-    let headers = [];
-
-    // FIX: Updated helper function to correctly convert snake_case to camelCase.
-    const toCamelCase = (str) => {
-        if (str.toLowerCase() === 'moisture') {
-            return 'range';
-        }
-        // This regex now correctly finds underscores and capitalizes the next letter.
-        return str.replace(/_([a-z])/g, (match, p1) => p1.toUpperCase());
-    };
-
-    lines.forEach(line => {
-        if (line.startsWith('[') && line.endsWith(']')) {
-            currentSection = line.substring(1, line.length - 1).trim();
-            headers = [];
-            return;
-        }
-
-        if (currentSection) {
-            const row = Papa.parse(line).data[0];
-
-            if (row.length === 0 || (row.length === 1 && row[0] === '')) {
-                return;
-            }
-
-            if (headers.length === 0) {
-                headers = row.map(header => toCamelCase(header.trim()));
-                return;
-            }
-
-            if (headers.length > 0) {
-                const item = {};
-                headers.forEach((header, index) => {
-                    let value = row[index] !== undefined ? row[index].trim() : '';
-                    if (!isNaN(parseFloat(value)) && isFinite(value) && value !== '') {
-                        value = parseFloat(value);
-                    }
-                    item[header] = value;
-                });
-                
-                // FIX: Add a unique ID if one doesn't already exist.
-                item.id = item.id || uuidv4();
-                
-                if (data[currentSection]) {
-                    if (currentSection === 'pricing') {
-                        const pricingType = item.type;
-                        if (pricingType) {
-                            data.pricing[pricingType] = item.price;
-                        }
-                    } else {
-                        data[currentSection].push(item);
-                    }
-                }
-            }
-        }
-    });
-
+  if (!csvString) {
     return data;
-};
+  }
 
-export const createCsvString = (data) => {
-    let output = '';
+  const lines = csvString.split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0);
+  let currentSection = null;
+  let headers = [];
 
-    const sections = {
-        provinces: { headers: ['id', 'name'] },
-        warehouses: { headers: ['id', 'name', 'province'] },
-        transactionTypes: { headers: ['id', 'name'] },
-        varieties: { headers: ['id', 'name', 'grain_type'] },
-        mtsTypes: { headers: ['id', 'name', 'weight', 'grain_type'] },
-        sdoList: { headers: ['id', 'name', 'province'] },
-        pricing: { headers: ['id', 'type', 'price'] },
-        enwfRanges: { headers: ['id', 'moisture', 'enwf'] },
-        ricemills: { headers: ['id', 'name', 'owner_representative', 'address', 'contact_number'] },
-    };
+  lines.forEach(line => {
+    if (line.startsWith('[') && line.endsWith(']')) {
+      currentSection = line.substring(1, line.length - 1).trim();
+      headers = [];
+      return;
+    }
 
-    for (const sectionName in sections) {
-        if (data[sectionName]) {
-            output += `[${sectionName}]\n`;
-            output += sections[sectionName].headers.join(',') + '\n';
-            if (sectionName === 'pricing') {
-                for (const key in data.pricing) {
-                    const pricingItem = data.pricing[key];
-                    output += `${pricingItem.id || uuidv4()},${key},${pricingItem.price}\n`;
-                }
-            } else {
-                data[sectionName].forEach(item => {
-                    const row = sections[sectionName].headers.map(header => {
-                        const camelCaseHeader = header.replace(/_./g, (char) => char[1].toUpperCase());
-                        return item[camelCaseHeader] || '';
-                    });
-                    output += row.join(',') + '\n';
-                });
+    if (currentSection) {
+      const parsed = Papa.parse(line).data[0];
+      const row = parsed;
+
+      if (row.length === 0 || (row.length === 1 && row[0] === '')) {
+        return;
+      }
+
+      if (headers.length === 0) {
+        headers = row.map(header => toCamelCase(header.trim()));
+        return;
+      }
+
+      if (headers.length > 0) {
+        const item = {};
+        headers.forEach((header, index) => {
+          let value = row[index] !== undefined ? row[index].trim() : '';
+          
+          if (header === 'moistureRanges') {
+            try {
+              // Parse the JSON string back into an array
+              value = JSON.parse(value);
+            } catch (e) {
+              console.error("Failed to parse moistureRanges:", value, e);
+              value = [];
             }
-            output += '\n';
-        }
-    }
-    
-    // FIX: Normalize logEntries to ensure all headers are present before unparsing.
-    const logHeaders = ['id', 'date', 'province', 'warehouse', 'bags', 'netkgs', 'per50', 'variety', 'transaction_type', 'remarks', 'pr_number', 'wsr_number', 'name', 'barangay', 'municipality', 'entry_type', 'moisture_content', 'gross_kgs', 'mts_type', 'sack_weight', 'enwf', 'enw_kgs', 'basic_cost', 'pricer', 'pricer_cost', 'grand_total', 'sdo_name', 'is_logged', 'ricemill', 'ai_number', 'rice_recovery'];
-
-    const normalizedLogEntries = data.logEntries.map(entry => {
-        const normalizedEntry = {};
-        logHeaders.forEach(header => {
-            const camelCaseHeader = header.replace(/_([a-z])/g, (match, p1) => p1.toUpperCase());
-            normalizedEntry[header] = entry[camelCaseHeader] || entry[header] || '';
+          } else if (header === 'price' && !isNaN(parseFloat(value))) {
+            value = parseFloat(value);
+          } else if (!isNaN(parseFloat(value)) && isFinite(value) && value !== '') {
+            value = parseFloat(value);
+          }
+          item[header] = value;
         });
-        return normalizedEntry;
-    });
 
-    const logEntriesCsv = Papa.unparse({
-        fields: logHeaders,
-        data: normalizedLogEntries,
-    });
-    
-    output += `[logEntries]\n`;
-    output += logEntriesCsv;
-
-    return output;
+        item.id = item.id || uuidv4();
+        
+        if (data[currentSection]) {
+          data[currentSection].push(item);
+        }
+      }
+    }
+  });
+  
+  return data;
 };
+
+// Helper function to escape values for CSV
+const escapeCsvValue = (value) => {
+  let strValue = String(value);
+  if (strValue.includes(',') || strValue.includes('"') || strValue.includes('\n')) {
+    const escapedValue = strValue.replace(/"/g, '""');
+    return `"${escapedValue}"`;
+  }
+  return strValue;
+};
+
+/**
+ * Creates a single CSV string from the structured data object.
+ * @param {object} data The structured data object.
+ * @returns {string} The raw CSV data as a string.
+ */
+export const createCsvString = (data) => {
+  let output = '';
+
+  const sections = {
+    provinces: { headers: ['id', 'name'] },
+    warehouses: { headers: ['id', 'name', 'province'] },
+    transactionTypes: { headers: ['id', 'name'] },
+    varieties: { headers: ['id', 'name', 'grain_type'] },
+    mtsTypes: { headers: ['id', 'name', 'weight', 'grain_type'] },
+    sdoList: { headers: ['id', 'name', 'province'] },
+    enwfRanges: { headers: ['id', 'moisture', 'enwf'] },
+    ricemills: { headers: ['id', 'name', 'owner_representative', 'address', 'contact_number'] },
+    palayPricing: { headers: ['id', 'variety_id', 'variety', 'moisture_ranges'] },
+    ricePricing: { headers: ['id', 'name', 'price', 'description'] },
+    logEntries: { headers: ['id', 'date', 'province', 'warehouse', 'bags', 'netkgs', 'per50', 'variety', 'transaction_type', 'remarks', 'pr_number', 'wsr_number', 'name', 'barangay', 'municipality', 'entry_type', 'moisture_content', 'gross_kgs', 'mts_type', 'sack_weight', 'enwf', 'enw_kgs', 'basic_cost', 'pricer', 'pricer_cost', 'grand_total', 'sdo_name', 'is_logged', 'ricemill', 'ai_number', 'rice_recovery'] }
+  };
+
+  for (const sectionName in sections) {
+    if (Array.isArray(data[sectionName]) && data[sectionName].length > 0) {
+      const sectionHeaders = sections[sectionName].headers;
+      output += `[${sectionName}]\n`;
+      output += sectionHeaders.join(',') + '\n';
+      
+      data[sectionName].forEach(item => {
+        const row = sectionHeaders.map(header => {
+          const camelCaseHeader = toCamelCase(header);
+          let value = item[camelCaseHeader];
+
+          if (camelCaseHeader === 'moistureRanges') {
+            // Stringify the array into a JSON string
+            value = JSON.stringify(value);
+          } else if (camelCaseHeader === 'price' && typeof value === 'number') {
+            value = value.toFixed(2);
+          }
+          
+          return escapeCsvValue(value !== undefined ? value : '');
+        });
+        output += row.join(',') + '\n';
+      });
+      output += '\n';
+    }
+  }
+
+  return output;
+};
+
 export const loadAppData = async () => {
-    const csvString = await fetchCsv();
-    const parsedData = parseAppData(csvString);
+  const csvString = await fetchCsv();
+  const parsedData = parseAppData(csvString);
 
-    if (!parsedData.enwfRanges || !parsedData.enwfRanges[0] || parsedData.enwfRanges[0].range === undefined) {
-        parsedData.enwfRanges = generateEnwfData();
-    }
-    
-    parsedData.varieties = parsedData.varieties.map(v => ({
-        ...v,
-        grainType: v.grainType || ''
-    }));
-    
-    if (!parsedData.ricemills) {
-        parsedData.ricemills = [];
-    }
+  if (!parsedData.enwfRanges || !parsedData.enwfRanges[0] || parsedData.enwfRanges[0].range === undefined) {
+    parsedData.enwfRanges = generateEnwfData();
+  }
+  
+  parsedData.varieties = parsedData.varieties.map(v => ({
+    ...v,
+    grainType: v.grainType || ''
+  }));
+  
+  if (!parsedData.ricemills) {
+    parsedData.ricemills = [];
+  }
+  if (!parsedData.palayPricing) {
+    parsedData.palayPricing = [];
+  }
+  if (!parsedData.ricePricing) {
+    parsedData.ricePricing = [];
+  }
 
-    return parsedData;
+  return parsedData;
 };

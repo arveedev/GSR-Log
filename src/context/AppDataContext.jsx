@@ -3,8 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 // Import utility functions for parsing and creating CSV strings.
-// IMPORTANT: We now use loadAppData, which handles both fetching and parsing.
-import { loadAppData, createCsvString } from '../utils/csvParser';
+import { createCsvString } from '../utils/csvParser';
 import { v4 as uuidv4 } from 'uuid'; // Import uuidv4 for generating unique IDs
 
 // Create a new Context. This is what components will use to access the data.
@@ -27,7 +26,7 @@ export const generateEnwfData = () => {
         const multiplier = parseFloat(currentMultiplier.toFixed(3));
         
         data.push({
-            id: uuidv4(), // FIX: Add a unique ID to each generated item
+            id: uuidv4(),
             moisture: moisture.toFixed(1),
             enwf: multiplier,
         });
@@ -57,7 +56,15 @@ export const AppDataContextProvider = ({ children }) => {
                 if (savedData) {
                     appData = JSON.parse(savedData);
                 } else {
-                    appData = await loadAppData();
+                    const response = await fetch('http://localhost:3001/get-data');
+                    if (response.status === 404) {
+                        console.log('No data file found on the server. Starting with default empty data.');
+                        appData = {};
+                    } else if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    } else {
+                        appData = await response.json();
+                    }
                 }
 
                 // Ensure all necessary lists exist with default values if they are missing
@@ -72,43 +79,82 @@ export const AppDataContextProvider = ({ children }) => {
                     enwfRanges: [],
                     logEntries: [],
                     grainTypes: ['Palay', 'Rice', 'Corn'],
-                    // ✅ NEW: Add an empty array for ricemills to the default data structure.
                     ricemills: [],
+                    palayPricing: [],
+                    ricePricing: [],
                 };
                 
                 const finalData = { ...defaultData, ...appData };
 
-                // FIX: Normalize logEntries to ensure all keys exist and have a value.
-                // This is the most crucial step to solve the "undefined" problem.
+                // Fix: Normalize varieties and mtsTypes data to use camelCase for grainType
+                finalData.varieties = finalData.varieties.map(item => ({
+                    ...item,
+                    grainType: item.grainType || item.grain_type,
+                    grain_type: undefined,
+                }));
+                finalData.mtsTypes = finalData.mtsTypes.map(item => ({
+                    ...item,
+                    grainType: item.grainType || item.grain_type,
+                    grain_type: undefined,
+                }));
+
+                // Fix: Normalize ricemills data to use camelCase for ownerRepresentative
+                finalData.ricemills = finalData.ricemills.map(item => ({
+                    ...item,
+                    ownerRepresentative: item.ownerRepresentative || item.owner_representative,
+                    owner_representative: undefined,
+                }));
+                
+                // Fix: Normalize logEntries to ensure all keys exist and have a value.
                 const normalizedLogEntries = finalData.logEntries.map(entry => {
-                    const normalizedEntry = { ...entry };
-                    // List of expected keys that might be missing
-                    const requiredKeys = [
-                        'transactionType', 'remarks', 'prNumber', 'wsrNumber', 'name', 
-                        'barangay', 'municipality', 'entryType', 'moistureContent', 
-                        'grossKgs', 'mtsType', 'sackWeight', 'enwf', 'enwKgs', 
-                        'basicCost', 'pricer', 'pricerCost', 'grandTotal', 'sdoName', 
-                        'isLogged', 'ricemill', 'aiNumber', 'riceRecovery'
-                    ];
-
-                    // For each required key, if it's not present or undefined, set it to an empty string.
-                    requiredKeys.forEach(key => {
-                        if (normalizedEntry[key] === undefined) {
-                            normalizedEntry[key] = '';
-                        }
-                    });
-
-                    // Ensure a unique ID is present
-                    normalizedEntry.id = normalizedEntry.id || uuidv4();
-
-                    return normalizedEntry;
+                    return {
+                        ...entry,
+                        id: entry.id || uuidv4(),
+                        transactionType: entry.transactionType || entry.transaction_type || '',
+                        prNumber: entry.prNumber || entry.pr_number || '',
+                        wsrNumber: entry.wsrNumber || entry.wsr_number || '',
+                        entryType: entry.entryType || entry.entry_type || '',
+                        moistureContent: entry.moistureContent || entry.moisture_content || '',
+                        grossKgs: entry.grossKgs || entry.gross_kgs || '',
+                        mtsType: entry.mtsType || entry.mts_type || '',
+                        sackWeight: entry.sackWeight || entry.sack_weight || '',
+                        enwKgs: entry.enwKgs || entry.enw_kgs || '',
+                        basicCost: entry.basicCost || entry.basic_cost || '',
+                        pricerCost: entry.pricerCost || entry.pricer_cost || '',
+                        grandTotal: entry.grandTotal || entry.grand_total || '',
+                        sdoName: entry.sdoName || entry.sdo_name || '',
+                        isLogged: entry.isLogged || entry.is_logged || false,
+                        aiNumber: entry.aiNumber || entry.ai_number || '',
+                        riceRecovery: entry.riceRecovery || entry.rice_recovery || '',
+                    };
                 });
                 
                 finalData.logEntries = normalizedLogEntries;
 
-                // Override the ENWF data with the new, granular data if it's missing or in the old format.
+                // FIX: Normalize palayPricing data by correctly parsing the JSON string
+                finalData.palayPricing = finalData.palayPricing.map(item => {
+                    let moistureRanges = item.moistureRanges;
+                    
+                    // Check if the old key 'moisture_ranges' exists and is a string
+                    if (!moistureRanges && item.moisture_ranges && typeof item.moisture_ranges === 'string') {
+                         try {
+                             // Correctly parse the JSON string into an array of objects
+                             moistureRanges = JSON.parse(item.moisture_ranges);
+                         } catch (e) {
+                             console.error("Failed to parse moisture_ranges JSON string:", e);
+                             moistureRanges = []; // Default to an empty array on error
+                         }
+                    }
+                    
+                    return {
+                        ...item,
+                        moistureRanges: moistureRanges || [], // Ensure it's always an array
+                        moisture_ranges: undefined, // Clean up the old key
+                    };
+                });
+
+
                 if (!finalData.enwfRanges || finalData.enwfRanges.length === 0 || finalData.enwfRanges[0].moisture === undefined) {
-                    // FIX: Re-run generateEnwfData to ensure a unique ID is assigned to each item.
                     finalData.enwfRanges = generateEnwfData();
                 }
 
@@ -117,23 +163,12 @@ export const AppDataContextProvider = ({ children }) => {
             } catch (err) {
                 console.error("Failed to load data:", err);
                 setError(err);
-                // On error, set a safe, empty default to prevent app from crashing.
                 setData({
-                    provinces: [],
-                    warehouses: [],
-                    varieties: [],
-                    transactionTypes: [],
-                    logEntries: [],
-                    mtsTypes: [],
-                    enwfRanges: generateEnwfData(), // Use the new function on error
-                    sdoList: [],
-                    pricing: {},
-                    grainTypes: ['Palay', 'Rice', 'Corn'],
-                    // ✅ NEW: Add an empty array for ricemills to the error fallback.
-                    ricemills: [],
+                    provinces: [], warehouses: [], varieties: [], transactionTypes: [], logEntries: [],
+                    mtsTypes: [], enwfRanges: generateEnwfData(), sdoList: [], pricing: {},
+                    grainTypes: ['Palay', 'Rice', 'Corn'], ricemills: [], palayPricing: [], ricePricing: []
                 });
             } finally {
-                // This ensures loading is set to false regardless of success or failure.
                 setLoading(false);
             }
         };
@@ -149,8 +184,34 @@ export const AppDataContextProvider = ({ children }) => {
                 console.error("Failed to save data to localStorage", e);
             }
         }
-    }, [data]); // Dependency array ensures this runs whenever 'data' changes.
+    }, [data]);
     
+    // Function to add a new log entry.
+    const addLogEntry = (newEntry) => {
+        setData(prevData => ({
+            ...prevData,
+            logEntries: [...prevData.logEntries, { ...newEntry, id: uuidv4() }],
+        }));
+    };
+
+    // Function to update an existing log entry.
+    const updateLogEntry = (updatedEntry) => {
+        setData(prevData => ({
+            ...prevData,
+            logEntries: prevData.logEntries.map(entry =>
+                entry.id === updatedEntry.id ? updatedEntry : entry
+            ),
+        }));
+    };
+    
+    // Function to delete a log entry.
+    const deleteLogEntry = (entryToDelete) => {
+        setData(prevData => ({
+            ...prevData,
+            logEntries: prevData.logEntries.filter(entry => entry.id !== entryToDelete.id),
+        }));
+    };
+
     // Function to update the entire application data state
     const updateAppData = (updatedValues) => {
         setData(prevData => ({
@@ -182,6 +243,9 @@ export const AppDataContextProvider = ({ children }) => {
         error,
         exportData,
         updateAppData,
+        addLogEntry,
+        updateLogEntry,
+        deleteLogEntry,
     };
     
     // Renders a loading message while data is being fetched.

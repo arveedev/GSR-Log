@@ -1,7 +1,7 @@
 // This component displays a searchable and sortable history of log entries.
 // It also provides functionality to edit and delete existing entries via modals.
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 // Custom hook to access the application's global data and functions.
 import { useAppData } from '../../hooks/useAppData';
@@ -22,7 +22,6 @@ const LogHistory = () => {
     // State for the search bar input.
     const [searchTerm, setSearchTerm] = useState('');
     // State to manage the sorting configuration (which column and direction).
-    // FIX: Changed sort key 'transaction_type' to 'transactionType' to match camelCase.
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
     
     // State to control the visibility of the edit and delete modals.
@@ -40,28 +39,23 @@ const LogHistory = () => {
         netkgs: '',
         per50: '',
         variety: '',
-        // FIX: Changed 'transaction_type' to 'transactionType' to match the data structure.
         transactionType: '', 
         remarks: '',
     });
 
     // Sorts the data alphabetically for dropdown menus in the edit modal.
     const sortedProvinces = [...data.provinces].sort((a, b) => a.name.localeCompare(b.name));
-    // FIX: Accessing transactionTypes.name to ensure correct sorting.
     const sortedTransactionTypes = [...data.transactionTypes].sort((a, b) => a.name.localeCompare(b.name));
     const sortedVarieties = [...data.varieties].sort((a, b) => a.name.localeCompare(b.name));
 
     // This effect handles the logic for the edit modal's warehouse dropdown.
-    // It ensures that if a user changes the province, the warehouse field is cleared if the previous selection is no longer valid.
     useEffect(() => {
-        if (!isEditModalOpen) return; // Only run when the modal is open.
+        if (!isEditModalOpen) return;
 
-        // Check if the currently selected warehouse is valid for the selected province.
         const selectedWarehouseInList = data.warehouses.some(w => 
             w.province === editForm.province && w.name === editForm.warehouse
         );
 
-        // If a warehouse is selected but it's not in the list for the current province, clear the warehouse field.
         if (editForm.warehouse && !selectedWarehouseInList) {
             setEditForm(prev => ({
                 ...prev,
@@ -72,7 +66,6 @@ const LogHistory = () => {
 
     // Filters log entries based on the search term.
     const filteredEntries = data.logEntries.filter(entry => {
-        // Search across all values in each entry object.
         return Object.values(entry).some(value =>
             String(value).toLowerCase().includes(searchTerm.toLowerCase())
         );
@@ -81,25 +74,23 @@ const LogHistory = () => {
     // Sorts the filtered entries based on the current sort configuration.
     const sortedEntries = [...filteredEntries].sort((a, b) => {
         if (!sortConfig.key) {
-            return 0; // No key, no sorting.
+            return 0;
         }
         const aValue = a[sortConfig.key];
         const bValue = b[sortConfig.key];
         
-        // Compare values to determine sort order.
         if (aValue < bValue) {
             return sortConfig.direction === 'ascending' ? -1 : 1;
         }
         if (aValue > bValue) {
             return sortConfig.direction === 'ascending' ? 1 : -1;
         }
-        return 0; // Values are equal.
+        return 0;
     });
 
     // Handles a request to sort a column.
     const requestSort = (key) => {
         let direction = 'ascending';
-        // If the same column is clicked again, reverse the direction.
         if (sortConfig.key === key && sortConfig.direction === 'ascending') {
             direction = 'descending';
         }
@@ -109,9 +100,9 @@ const LogHistory = () => {
     // Returns the appropriate sort icon based on the current sort configuration.
     const getSortIcon = (key) => {
         if (sortConfig.key !== key) {
-            return '↕️'; // Default icon for unsorted columns.
+            return '↕️';
         }
-        return sortConfig.direction === 'ascending' ? '⬆️' : '⬇️'; // Icons for ascending/descending.
+        return sortConfig.direction === 'ascending' ? '⬆️' : '⬇️';
     };
     
     // Opens the edit modal and populates the form with the selected entry's data.
@@ -125,7 +116,6 @@ const LogHistory = () => {
             netkgs: entry.netkgs,
             per50: entry.per50,
             variety: entry.variety,
-            // FIX: Changed 'transaction_type' to 'transactionType' to match the data structure.
             transactionType: entry.transactionType,
             remarks: entry.remarks,
         });
@@ -142,16 +132,13 @@ const LogHistory = () => {
     const handleEditSubmit = (e) => {
         e.preventDefault();
         if (selectedEntry) {
-            // Recalculate 'per50' based on the new 'netkgs' value.
             const per50 = (parseFloat(editForm.netkgs) / 50).toFixed(3);
-            // FIX: Changed 'transaction_type' to 'transactionType' in the updatedEntry object.
             const updatedEntry = {
                 ...selectedEntry,
                 ...editForm,
-                per50, // Use the newly calculated per50.
-                transactionType: editForm.transactionType // Ensure the key is camelCase here
+                per50,
             };
-            updateLogEntry(updatedEntry); // Call the global update function.
+            updateLogEntry(updatedEntry);
             setIsEditModalOpen(false);
             setSelectedEntry(null);
         }
@@ -160,7 +147,7 @@ const LogHistory = () => {
     // Handles the confirmation of an entry deletion.
     const handleDeleteConfirm = () => {
         if (selectedEntry) {
-            deleteLogEntry(selectedEntry); // Call the global delete function.
+            deleteLogEntry(selectedEntry);
             setIsDeleteModalOpen(false);
             setSelectedEntry(null);
         }
@@ -169,9 +156,7 @@ const LogHistory = () => {
     // Handles changes to the form fields in the edit modal.
     const handleEditFormChange = (e) => {
         const { name, value } = e.target;
-        // FIX: The name in the form is 'transaction_type', but we need to update the state with the 'transactionType' key.
-        const newKey = name === 'transaction_type' ? 'transactionType' : name;
-        setEditForm(prev => ({ ...prev, [newKey]: value }));
+        setEditForm(prev => ({ ...prev, [name]: value }));
     };
 
     // Filters the warehouses list for the edit modal based on the selected province.
@@ -195,8 +180,6 @@ const LogHistory = () => {
                 <HistoryTable>
                     <thead>
                         <tr>
-                            {/* Each TableHeader has a click handler to trigger sorting */}
-                            {/* FIX #1: Added two spans with CSS to guarantee spacing and prevent overlap. */}
                             <TableHeader onClick={() => requestSort('date')}><span>Date</span><SortIcon>{getSortIcon('date')}</SortIcon></TableHeader>
                             <TableHeader onClick={() => requestSort('province')}><span>Province</span><SortIcon>{getSortIcon('province')}</SortIcon></TableHeader>
                             <TableHeader onClick={() => requestSort('warehouse')}><span>Warehouse</span><SortIcon>{getSortIcon('warehouse')}</SortIcon></TableHeader>
@@ -204,7 +187,6 @@ const LogHistory = () => {
                             <TableHeader onClick={() => requestSort('netkgs')}><span>Net Kgs</span><SortIcon>{getSortIcon('netkgs')}</SortIcon></TableHeader>
                             <TableHeader onClick={() => requestSort('per50')}><span>Per 50</span><SortIcon>{getSortIcon('per50')}</SortIcon></TableHeader>
                             <TableHeader onClick={() => requestSort('variety')}><span>Variety</span><SortIcon>{getSortIcon('variety')}</SortIcon></TableHeader>
-                            {/* FIX: Changed the header's onClick key to 'transactionType' */}
                             <TableHeader onClick={() => requestSort('transactionType')}><span>Type</span><SortIcon>{getSortIcon('transactionType')}</SortIcon></TableHeader>
                             <TableHeader>Remarks</TableHeader>
                             <TableHeader $actionHeader>Actions</TableHeader>
@@ -221,7 +203,6 @@ const LogHistory = () => {
                                     <TableCell>{entry.netkgs}</TableCell>
                                     <TableCell>{entry.per50}</TableCell>
                                     <TableCell>{entry.variety}</TableCell>
-                                    {/* FIX: Changed `entry.transaction_type` to `entry.transactionType` */}
                                     <TableCell>{entry.transactionType}</TableCell>
                                     <TableCell $remarksCell>{entry.remarks}</TableCell>
                                     <TableCell $actionsCell>
@@ -231,7 +212,6 @@ const LogHistory = () => {
                                 </TableRow>
                             ))
                         ) : (
-                            // Display a message when no entries match the search/filters.
                             <TableRow>
                                 <TableCell colSpan="10" style={{ textAlign: 'center' }}>No matching entries found.</TableCell>
                             </TableRow>
@@ -253,7 +233,6 @@ const LogHistory = () => {
                         <label htmlFor="edit-province">Province:</label>
                         <Select id="edit-province" name="province" value={editForm.province} onChange={handleEditFormChange} required>
                             <option value="">Select Province</option>
-                            {/* FIX #2: Sorted provinces alphabetically */}
                             {sortedProvinces.map((p, index) => (
                                 <option key={index} value={p.name}>{p.name}</option>
                             ))}
@@ -263,18 +242,15 @@ const LogHistory = () => {
                         <label htmlFor="edit-warehouse">Warehouse:</label>
                         <Select id="edit-warehouse" name="warehouse" value={editForm.warehouse} onChange={handleEditFormChange} disabled={!editForm.province} required>
                             <option value="">Select Warehouse</option>
-                            {/* FIX #2: Sorted filtered warehouses alphabetically */}
                             {filteredEditWarehouses.map((w, index) => (
                                 <option key={index} value={w.name}>{w.name}</option>
                             ))}
                         </Select>
                     </FormRow>
                     <FormRow>
-                        <label htmlFor="edit-transaction_type">Transaction Type:</label>
-                        {/* FIX: Changed `name` to `transactionType` to match the state key */}
-                        <Select id="edit-transaction_type" name="transactionType" value={editForm.transactionType} onChange={handleEditFormChange} required>
+                        <label htmlFor="edit-transactionType">Transaction Type:</label>
+                        <Select id="edit-transactionType" name="transactionType" value={editForm.transactionType} onChange={handleEditFormChange} required>
                             <option value="">Select Type</option>
-                            {/* FIX #2: Sorted transaction types alphabetically */}
                             {sortedTransactionTypes.map((t, index) => (
                                 <option key={index} value={t.name}>{t.name}</option>
                             ))}
@@ -284,7 +260,6 @@ const LogHistory = () => {
                         <label htmlFor="edit-variety">Variety:</label>
                         <Select id="edit-variety" name="variety" value={editForm.variety} onChange={handleEditFormChange} required>
                             <option value="">Select Variety</option>
-                            {/* FIX #2: Sorted varieties alphabetically */}
                             {sortedVarieties.map((v, index) => (
                                 <option key={index} value={v.name}>{v.name}</option>
                             ))}
@@ -331,7 +306,7 @@ export default LogHistory;
 // Reusable Modal Component
 // This component provides a flexible, reusable way to display modal windows.
 const Modal = ({ isOpen, onClose, children }) => {
-    if (!isOpen) return null; // Don't render if the modal is closed.
+    if (!isOpen) return null;
     return (
         <ModalOverlay onClick={onClose}>
             <ModalContent onClick={(e) => e.stopPropagation()}>
@@ -340,7 +315,6 @@ const Modal = ({ isOpen, onClose, children }) => {
         </ModalOverlay>
     );
 };
-
 
 // --- Styled Components ---
 const HistoryContainer = styled.div`
@@ -524,7 +498,7 @@ const ModalHeader = styled.h3`
 
 const Form = styled.form`
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr)); /* Adjusted for better overflow handling */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
     align-items: end;
 `;
@@ -551,7 +525,7 @@ const Input = styled.input`
     border-radius: 6px;
     font-size: 1em;
     transition: all 0.2s ease-in-out;
-    box-sizing: border-box; /* Ensures padding doesn't cause overflow */
+    box-sizing: border-box;
     
     &:focus {
         outline: none;

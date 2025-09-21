@@ -1,11 +1,15 @@
+Thank you for providing the latest PRD. Based on our recent work and the issues we've resolved, I have made the necessary updates to reflect the current state of the project.
+
+This revised PRD incorporates the new backend architecture and its dependencies, documents the solutions for the persistent data normalization errors, and formalizes the collaborative protocols we have established.
+
 Product Requirements Document: GSR Log App
 1. Project Overview
-The GSR Log App is a single-page web application designed for the simple and efficient logging of daily GSR-related data. The app provides a user-friendly interface for data entry, history tracking, and summary viewing. Its key focus is on local, client-side data persistence, storing all information directly in the user's browser via localStorage and enabling data export via CSV files. This approach makes the application lightweight, secure, and entirely self-contained.
+The GSR Log App is a single-page web application designed for the simple and efficient logging of daily GSR-related data. The app provides a user-friendly interface for data entry, history tracking, and summary viewing. Its key focus is on local, client-side data persistence, storing all information directly in the user's browser via localStorage and enabling data export via CSV files. The application also relies on a lightweight Node.js backend to serve the initial, structured CSV data to the frontend, ensuring a reliable starting point.
 
 2. Goals & Objectives
 Primary Goal: To provide a simple, reliable, and locally-hosted application for daily data logging and management.
 
-Objective 1: To ensure seamless data persistence by storing all application data directly in the user's browser via localStorage.
+Objective 1: To ensure seamless data persistence by storing and retrieving all application data directly from the user's browser via localStorage, with a fallback to a backend API for initial data loading.
 
 Objective 2: To offer a clear, tab-based user interface for intuitive navigation across all functionalities (Log Entry, History, Summary, Manage Data, Palay Deliveries).
 
@@ -17,7 +21,7 @@ Objective 5: To provide a mechanism to export the entire dataset as a single, st
 
 3. Plan & Strategy
 Phase 1: Foundational Development (Completed)
-This phase focused on building the core structure and initial data management functionalities of the application.
+This phase focused on building the core structure and initial data management functionalities.
 
 Functionality:
 
@@ -27,7 +31,7 @@ History Tab: A comprehensive list view of all logged entries, with search and so
 
 Summary Tab: Provides aggregated views and daily reports of the data.
 
-Manage Data Tab: A dedicated tab for managing lookup data with separate sub-tabs and functionalities for provinces, warehouses, transaction types, varieties, mts types, SDO list, pricing, and enwf range.
+Manage Data Tab: A dedicated tab for managing lookup data with separate sub-tabs.
 
 Palay Delivery Tab: A dedicated form for entering palay deliveries, with an "isLogged" flag.
 
@@ -35,14 +39,14 @@ Data Persistence: The ability to save all data to localStorage.
 
 Strategy:
 
-Develop a modular, multi-component React application, with each major feature (tab) residing in its own component.
+Developed a modular, multi-component React application, with each major feature residing in its own component.
 
-Prioritize a robust CRUD (Create, Read, Update, Delete) implementation that synchronizes with localStorage on every change.
+Prioritized a robust CRUD (Create, Read, Update, Delete) implementation that synchronizes with localStorage on every change.
 
 Phase 2: Refinement & Integration (Current Focus)
-The project is currently in the process of refining existing features and preparing for future integrations.
+The project is currently in the process of refining existing features and fixing critical data handling issues to ensure stability. We have successfully addressed persistent runtime errors related to data normalization.
 
-Current Focus: We are currently working on adding more features and fixing runtime errors within the Manage Data tab. We have successfully fixed the handleEditFormChange and ButtonGroup runtime errors. The edit functionality for the Manage Data tab is now operational, with the edit modal styled to be compact and responsive to avoid screen overflow. The styling has also been corrected to prevent form elements from overlapping.
+Current Focus: We are currently working on adding more features and fixing runtime errors within the Manage Data tab. We have successfully fixed the handleEditFormChange and ButtonGroup runtime errors. The edit functionality for the Manage Data tab is now operational, with the edit modal styled to be compact and responsive to avoid screen overflow. We have also resolved a critical issue where the application would crash due to a data format mismatch between the backend CSV and localStorage. The palayPricing data, in particular, is now correctly parsed from a complex JSON string format.
 
 Future Functionality:
 
@@ -61,41 +65,49 @@ Framework: React
 
 Language: JavaScript (ES6+)
 
-Styling: We are exclusively using styled-components for all UI styling. The react-bootstrap library, which was temporarily introduced during debugging, has been removed as a dependency to prevent styling conflicts and maintain project consistency.
+Styling: We are exclusively using styled-components for all UI styling.
 
-Architecture: The application is built as a series of modular, self-contained components, with each major feature (tab) residing in its own file (e.g., LogEntry.jsx, LogHistory.jsx, ManageData.jsx, PalayDelivery.jsx).
+Architecture: The application is built as a series of modular, self-contained components.
 
 State Management: React's built-in useState and useEffect hooks will be used to manage component state, with data persistence handled by synchronizing with localStorage.
 
-Data Handling: The Papaparse library will be used for parsing CSV strings into JavaScript objects and unparsing objects back into CSV strings.
+Data Handling: The application handles data normalization by manually parsing and transforming incoming data. This includes using JSON.parse to correctly handle complex data structures like the moisture_ranges within the palayPricing data, and converting snake_case keys to camelCase.
 
-Backend & Database
+Backend
 
-Platform: N/A (Client-side only)
+Platform: Node.js
 
-Authentication: N/A (Single-user, single-device tool)
+Purpose: The backend serves as a simple server to provide the initial structured CSV data to the frontend via a single API endpoint.
 
-Data Storage: The browser's localStorage API is the primary database.
+Authentication: N/A (The app is a single-user, single-device tool).
 
-Data Structure: All data is managed as a single JavaScript object in memory, with separate keys in localStorage for each data list.
+Data Storage: The browser's localStorage API is the primary database. The CSV files on the server act as the initial data source.
 
-5. Collaborative Workflow & Current Progress
-Workflow: To prevent accidental deletion of code and ensure we are always on the same page, I will always ask for the current or latest code for the specific file we are working on before making changes. All code provided in my responses will be complete and ready to be copied and pasted.
+5. Dependencies
+Frontend Dependencies:
 
-Current Progress:
+react: Core React library.
 
-The core application structure with tabs for Log Entry, History, Summary, and Manage Data is in place.
+react-dom: Enables React components to render to the DOM.
 
-The Palay Delivery tab with its entry form is implemented.
+uuid: For generating unique IDs for new log entries.
 
-All core CRUD functionalities for the lookup data within the Manage Data tab are operational. The edit functionality has been fixed and is now working correctly.
+Backend Dependencies:
 
-The edit modal styling has been successfully updated to be compact and prevent scrolling or element overlap.
+express: A web framework for Node.js, used to create the server and API endpoints.
 
-The History tab has search and sort functionality.
+cors: A middleware to enable Cross-Origin Resource Sharing, allowing the frontend to access the backend.
 
-The Log Entry form and the History tab are connected, allowing new entries to be recorded.
+csv-parse: A library for parsing CSV data into a JavaScript array or object.
 
-Data persistence using localStorage is fully functional.
+uuid: For generating unique identifiers.
 
-Our current focus, as you've directed, is on adding features and fixing runtime errors in the Manage Data tab before we can proceed with other integrations.
+To install these backend dependencies, run the following command in the backend directory:
+
+Bash
+
+npm install express cors csv-parse uuid
+6. Collaborative Protocols
+Code Changes: Always ask for the latest code for the specific file we are working on before making changes. This ensures we are always on the same page and prevents the introduction of new errors or conflicts.
+
+Canvas Element: Do not use the HTML canvas element or any related libraries unless specifically asked to do so in a prompt.
