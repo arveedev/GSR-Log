@@ -15,9 +15,9 @@ const LogEntry = () => {
     // We now need access to the entire data object and the updateAppData function.
     const { data, updateAppData } = useAppData();
     
-    // Filter and find the unlogged entries. We are looking for entries created
-    // by the Palay Delivery form, which have isLogged = 'false'.
-    const unloggedDeliveries = data.logEntries.filter(entry => entry.isLogged === 'false');
+    // Filter and find the unlogged entries.
+    // This line is now commented out as we are disabling the unlogged entries feature temporarily.
+    // const unloggedDeliveries = data.logEntries.filter(entry => entry.isLogged === 'false');
 
     // State to hold the unlogged entry data when a user clicks on it for logging.
     const [selectedUnloggedEntry, setSelectedUnloggedEntry] = useState(null);
@@ -30,7 +30,6 @@ const LogEntry = () => {
 
     // --- State Management ---
     // These dropdowns use the custom usePersistentState hook.
-    // This means their last selected value will be remembered by the browser.
     const [province, setProvince] = usePersistentState('lastProvince', '');
     const [warehouse, setWarehouse] = usePersistentState('lastWarehouse', '');
     const [variety, setVariety] = usePersistentState('lastVariety', '');
@@ -38,13 +37,13 @@ const LogEntry = () => {
     const [ricemill, setRicemill] = useState('');
     const [aiNumber, setAiNumber] = useState('');
 
-    // These fields use standard React useState, so their values reset when the form is submitted.
+    // These fields use standard React useState.
     const [date, setDate] = useState(today);
     const [bags, setBags] = useState('');
-    const [netkgs, setNetkgs] = useState('');
+    const [netKgs, setNetKgs] = useState('');
     const [per50, setPer50] = useState('');
     const [remarks, setRemarks] = useState('');
-    // New state variables for additional fields from the Palay Delivery form
+    // State variables for additional fields from the Palay Delivery form
     const [prNumber, setPrNumber] = useState('');
     const [wsrNumber, setWsrNumber] = useState('');
     const [name, setName] = useState('');
@@ -61,77 +60,79 @@ const LogEntry = () => {
     const [pricerCost, setPricerCost] = useState('');
     const [grandTotal, setGrandTotal] = useState('');
     const [sdoName, setSdoName] = useState('');
-
+    const [riceRecovery, setRiceRecovery] = useState('');
+    
     // State for controlling the success message's visibility.
     const [isSuccess, setIsSuccess] = useState(false);
 
     // --- Helper Functions & Effects ---
 
-    // This useEffect hook runs whenever the 'netkgs' state changes.
+    // This useEffect hook runs whenever the 'netKgs' state changes.
     // It automatically calculates the 'per50' value.
     useEffect(() => {
-        // Check if netkgs has a value, then perform the calculation.
-        const calculatedPer50 = netkgs ? (parseFloat(netkgs) / 50).toFixed(3) : '';
-        // Update the 'per50' state with the calculated value.
+        const calculatedPer50 = netKgs ? (parseFloat(netKgs) / 50).toFixed(3) : '';
         setPer50(calculatedPer50);
-    }, [netkgs]); // The dependency array ensures this effect only runs when netkgs changes.
+    }, [netKgs]);
 
-    // Now, we filter and sort the warehouses correctly based on the 'province' property.
+    // Filter and sort the warehouses correctly based on the 'province' property.
     const filteredWarehouses = data.warehouses
         .filter((w) => w.province === province)
         .sort((a, b) => a.name.localeCompare(b.name));
 
-    // This useEffect ensures the 'warehouse' state is reset if the selected 'province' changes
-    // to prevent an invalid combination (e.g., selecting a warehouse from a different province).
+    // This useEffect ensures the 'warehouse' state is reset if the selected 'province' changes.
     useEffect(() => {
-        // If a warehouse is currently selected AND it's not in the new filtered list of warehouses...
         if (warehouse && !filteredWarehouses.some(w => w.name === warehouse)) {
-            // ...then reset the warehouse state to an empty string.
             setWarehouse('');
         }
-    }, [province, warehouse, filteredWarehouses, setWarehouse]); // Dependencies ensure this runs when relevant state changes.
+    }, [province, warehouse, filteredWarehouses, setWarehouse]);
 
-    // New: This function populates the form with the selected unlogged entry's data.
+    // This useEffect hook runs when transactionType or variety changes.
+    useEffect(() => {
+        if (transactionType === 'MILLING' && variety === 'WD1') {
+            setRicemill('');
+            setAiNumber('');
+        }
+    }, [transactionType, variety]);
+
+    // This function populates the form with the selected unlogged entry's data.
     const handleSelectEntryForLogging = (entry) => {
         setSelectedUnloggedEntry(entry);
         setDate(entry.date);
         setProvince(entry.province || '');
         setWarehouse(entry.warehouse || '');
-        setTransactionType(entry.transaction_type || '');
+        setTransactionType(entry.transactionType || '');
         setVariety(entry.variety || '');
         setBags(entry.bags || '');
-        setNetkgs(entry.netkgs || '');
-        // ✅ FIX: Populate the per50 field from the selected entry.
-        setPer50(entry.per50 || ''); 
+        setNetKgs(entry.netKgs || '');
+        setPer50(entry.per50 || '');
         setRemarks(entry.remarks || '');
-        
-        // Populate all the new fields from the Palay Delivery form.
-        setPrNumber(entry.pr_number || '');
-        setWsrNumber(entry.wsr_number || '');
+        setPrNumber(entry.prNumber || '');
+        setWsrNumber(entry.wsrNumber || '');
         setName(entry.name || '');
         setBarangay(entry.barangay || '');
         setMunicipality(entry.municipality || '');
-        setEntryType(entry.entry_type || '');
-        setMoistureContent(entry.moisture_content || '');
-        setGrossKgs(entry.gross_kgs || '');
-        setMtsType(entry.mts_type || '');
-        setSackWeight(entry.sack_weight || '');
+        setEntryType(entry.entryType || '');
+        setMoistureContent(entry.moistureContent || '');
+        setGrossKgs(entry.grossKgs || '');
+        setMtsType(entry.mtsType || '');
+        setSackWeight(entry.sackWeight || '');
         setEnwf(entry.enwf || '');
-        setEnwKgs(entry.enw_kgs || '');
-        setBasicCost(entry.basic_cost || '');
-        setPricerCost(entry.pricer_cost || '');
-        setGrandTotal(entry.grand_total || '');
-        setSdoName(entry.sdo_name || '');
+        setEnwKgs(entry.enwKgs || '');
+        setBasicCost(entry.basicCost || '');
+        setPricerCost(entry.pricerCost || '');
+        setGrandTotal(entry.grandTotal || '');
+        setSdoName(entry.sdoName || '');
         setRicemill(entry.ricemill || '');
-        setAiNumber(entry.ai_number || '');
+        setAiNumber(entry.aiNumber || '');
+        setRiceRecovery(entry.riceRecovery || '');
     };
     
-    // New: Function to clear the form and reset the selection.
+    // Function to clear the form and reset the selection.
     const clearFormAndSelection = () => {
         setSelectedUnloggedEntry(null);
         setDate(today);
         setBags('');
-        setNetkgs('');
+        setNetKgs('');
         setPer50('');
         setRemarks('');
         setPrNumber('');
@@ -152,119 +153,107 @@ const LogEntry = () => {
         setSdoName('');
         setRicemill('');
         setAiNumber('');
+        setRiceRecovery('');
     };
 
     // The main function to handle form submission.
     const handleAdd = (e) => {
-        // Prevents the default browser form submission, which would cause a page reload.
         e.preventDefault();
-        // A quick check to ensure all required fields are filled before submitting.
-        if (!province || !warehouse || !bags || !netkgs || !variety || !transactionType) {
+        if (!province || !warehouse || !bags || !netKgs || !variety || !transactionType) {
             alert('Please fill out all required fields.');
-            return; // Stop the function if fields are missing.
+            return;
         }
         
-        // ✅ NEW: Add validation for the AI Number if the transaction is 'Milling'
-        if (transactionType === 'MILLING') {
+        if (transactionType === 'MILLING' && variety !== 'WD1') {
             if (!ricemill || !aiNumber) {
                 alert('Please provide a Ricemill name and AI Number for Milling transactions.');
                 return;
             }
-            // Check for AI Number duplication
-            const isDuplicate = data.logEntries.some(entry => entry.ai_number === aiNumber);
+            const isDuplicate = data.logEntries.some(entry => entry.aiNumber === aiNumber);
             if (isDuplicate) {
                 alert('This AI Number already exists. Please enter a unique number.');
                 return;
             }
         }
 
-        // This is the new logic for handling both regular entries and logging unlogged entries.
         if (selectedUnloggedEntry) {
-            // Find the index of the entry to be logged.
             const entryIndex = data.logEntries.findIndex(
-                entry => entry.pr_number === selectedUnloggedEntry.pr_number && entry.date === selectedUnloggedEntry.date
+                // Use camelCase keys for comparison
+                entry => entry.prNumber === selectedUnloggedEntry.prNumber && entry.date === selectedUnloggedEntry.date
             );
             
             if (entryIndex !== -1) {
-                // Create a new object to update the existing entry's isLogged status.
                 const updatedEntry = { 
                     ...data.logEntries[entryIndex],
                     isLogged: 'true',
-                    ricemill: ricemill,
-                    ai_number: aiNumber,
+                    ricemill: (transactionType === 'MILLING' && variety === 'WD1') ? null : ricemill,
+                    aiNumber: (transactionType === 'MILLING' && variety === 'WD1') ? null : aiNumber,
+                    transactionType: transactionType,
                 };
-                // Create a new array with the updated entry.
                 const updatedLogEntries = [...data.logEntries];
                 updatedLogEntries[entryIndex] = updatedEntry;
-                // Save the new array to the global state.
                 updateAppData({ logEntries: updatedLogEntries });
             }
         } else {
-            // This is the original logic for adding a new regular entry.
             const newEntry = {
-                // ✅ FIX: Assign a new UUID to the 'id' field
                 id: uuidv4(),
                 date,
                 province,
                 warehouse,
                 bags,
-                netkgs,
+                netKgs,
                 per50,
                 variety,
-                transaction_type: transactionType,
+                transactionType,
                 remarks,
-                ricemill: ricemill,
-                ai_number: aiNumber,
+                prNumber,
+                wsrNumber,
+                name,
+                barangay,
+                municipality,
+                entryType,
+                moistureContent,
+                grossKgs,
+                mtsType,
+                sackWeight,
+                enwf,
+                enwKgs,
+                basicCost,
+                pricerCost,
+                grandTotal,
+                sdoName,
+                riceRecovery,
+                ricemill: (transactionType === 'MILLING' && variety === 'WD1') ? null : ricemill,
+                aiNumber: (transactionType === 'MILLING' && variety === 'WD1') ? null : aiNumber,
+                isLogged: 'true'
             };
             
-            // Add the new entry to the application's data.
             const updatedLogEntries = [...data.logEntries, newEntry];
             updateAppData({ logEntries: updatedLogEntries });
         }
 
-        // Show a success message to the user.
         setIsSuccess(true);
-        // Use setTimeout to automatically hide the message after 3 seconds.
         setTimeout(() => {
             setIsSuccess(false);
         }, 3000);
 
-        // Reset fields that are not meant to be persistent.
         clearFormAndSelection();
     };
 
     // --- UI Components (JSX) ---
-    // This is the structure and content of the Log Entry tab.
     return (
         <FormContainer>
             <FormHeader>Add New Entry</FormHeader>
-            {/* New: Display unlogged deliveries if there are any */}
-            {unloggedDeliveries.length > 0 && (
-                <UnloggedSection>
-                    <SectionTitle>Unlogged Palay Deliveries</SectionTitle>
-                    <UnloggedList>
-                        {unloggedDeliveries.map((entry, index) => (
-                            <UnloggedItem key={index} onClick={() => handleSelectEntryForLogging(entry)}>
-                                <strong>Date:</strong> {entry.date} <br/>
-                                <strong>PR No.:</strong> {entry.pr_number} <br/>
-                                <strong>Name:</strong> {entry.name} <br/>
-                                <LogButton>Log This Entry</LogButton>
-                            </UnloggedItem>
-                        ))}
-                    </UnloggedList>
-                </UnloggedSection>
-            )}
 
-            {/* Conditionally render the success message if isSuccess is true. */}
+            {/* The unlogged deliveries section is removed as per your request. */}
+            
             {isSuccess && <SuccessMessage>Entry added successfully!</SuccessMessage>}
             
-            {/* New: Conditional button to clear form selection */}
             {selectedUnloggedEntry && (
                 <ClearButton onClick={clearFormAndSelection}>Clear Selection</ClearButton>
             )}
 
             <Form onSubmit={handleAdd}>
-                {/* Each FormRow contains a label and an input field. */}
                 <FormRow>
                     <label htmlFor="date">Date:</label>
                     <DatePicker type="date" value={date} onChange={(e) => setDate(e.target.value)} />
@@ -274,7 +263,6 @@ const LogEntry = () => {
                     <label htmlFor="province">Province:</label>
                     <Select value={province} onChange={(e) => setProvince(e.target.value)} required>
                         <option value="">Select Province</option>
-                        {/* Map through the now-sorted provinces. */}
                         {sortedProvinces.map((p, index) => (
                             <option key={index} value={p.name}>{p.name}</option>
                         ))}
@@ -286,11 +274,10 @@ const LogEntry = () => {
                     <Select
                         value={warehouse}
                         onChange={(e) => setWarehouse(e.target.value)}
-                        disabled={!province} // Disable this dropdown if no province is selected.
+                        disabled={!province}
                         required
                     >
                         <option value="">Select Warehouse</option>
-                        {/* Map through the now-sorted and filtered warehouses. */}
                         {filteredWarehouses.map((w, index) => (
                             <option key={index} value={w.name}>{w.name}</option>
                         ))}
@@ -298,32 +285,40 @@ const LogEntry = () => {
                 </FormRow>
 
                 <FormRow>
-                    <label htmlFor="transaction_type">Transaction Type:</label>
+                    <label htmlFor="transactionType">Transaction Type:</label>
                     <Select value={transactionType} onChange={(e) => setTransactionType(e.target.value)} required>
                         <option value="">Select Type</option>
-                        {/* Map through the now-sorted transaction types. */}
                         {sortedTransactionTypes.map((t, index) => (
                             <option key={index} value={t.name}>{t.name}</option>
                         ))}
                     </Select>
                 </FormRow>
 
-                {/* ✅ NEW: Conditionally render Ricemill and AI Number fields based on transactionType */}
                 {transactionType === 'MILLING' && (
                     <>
                         <FormRow>
                             <label htmlFor="ricemill">Ricemill Name:</label>
-                            <Select value={ricemill} onChange={(e) => setRicemill(e.target.value)} required>
+                            <Select 
+                                value={ricemill} 
+                                onChange={(e) => setRicemill(e.target.value)}
+                                disabled={variety === 'WD1'}
+                                required={variety !== 'WD1'}
+                            >
                                 <option value="">Select Ricemill</option>
-                                {/* Map through the now-sorted ricemills */}
                                 {sortedRicemills.map((r, index) => (
                                     <option key={index} value={r.name}>{r.name}</option>
                                 ))}
                             </Select>
                         </FormRow>
                         <FormRow>
-                            <label htmlFor="ai_number">AI Number:</label>
-                            <Input type="text" value={aiNumber} onChange={(e) => setAiNumber(e.target.value)} required />
+                            <label htmlFor="aiNumber">AI Number:</label>
+                            <Input 
+                                type="text" 
+                                value={aiNumber} 
+                                onChange={(e) => setAiNumber(e.target.value)}
+                                disabled={variety === 'WD1'}
+                                required={variety !== 'WD1'}
+                            />
                         </FormRow>
                     </>
                 )}
@@ -332,7 +327,6 @@ const LogEntry = () => {
                     <label htmlFor="variety">Variety:</label>
                     <Select value={variety} onChange={(e) => setVariety(e.target.value)} required>
                         <option value="">Select Variety</option>
-                        {/* Map through the now-sorted varieties. */}
                         {sortedVarieties.map((v, index) => (
                             <option key={index} value={v.name}>{v.name}</option>
                         ))}
@@ -345,31 +339,29 @@ const LogEntry = () => {
                 </FormRow>
 
                 <FormRow>
-                    <label htmlFor="netkgs">Net Kgs:</label>
-                    <Input type="number" step="0.001" value={netkgs} onChange={(e) => setNetkgs(e.target.value)} required />
+                    <label htmlFor="netKgs">Net Kgs:</label>
+                    <Input type="number" step="0.001" value={netKgs} onChange={(e) => setNetKgs(e.target.value)} required />
                 </FormRow>
 
                 <FormRow>
                     <label htmlFor="per50">Per 50:</label>
-                    {/* The per50 field is read-only and disabled because its value is automatically calculated. */}
                     <Input type="text" value={per50} readOnly disabled />
                 </FormRow>
 
-                {/* This row uses the $fullWidth prop to span the entire form width. */}
                 <FormRow $fullWidth>
                     <label htmlFor="remarks">Remarks:</label>
                     <TextArea value={remarks} onChange={(e) => setRemarks(e.target.value)} />
                 </FormRow>
 
-                {/* New: Display additional fields if a Palay Delivery entry is selected */}
-                {selectedUnloggedEntry && (
+                {/* The unlogged entry display fields are removed as we are no longer using this flow. */}
+                {/* {selectedUnloggedEntry && (
                     <>
                         <FormRow>
-                            <label htmlFor="pr_number">PR Number:</label>
+                            <label htmlFor="prNumber">PR Number:</label>
                             <Input type="text" value={prNumber} readOnly />
                         </FormRow>
                         <FormRow>
-                            <label htmlFor="wsr_number">WSR Number:</label>
+                            <label htmlFor="wsrNumber">WSR Number:</label>
                             <Input type="text" value={wsrNumber} readOnly />
                         </FormRow>
                         <FormRow>
@@ -377,23 +369,23 @@ const LogEntry = () => {
                             <Input type="text" value={name} readOnly />
                         </FormRow>
                         <FormRow>
-                            <label htmlFor="entry_type">Entry Type:</label>
+                            <label htmlFor="entryType">Entry Type:</label>
                             <Input type="text" value={entryType} readOnly />
                         </FormRow>
                         <FormRow>
-                            <label htmlFor="moisture_content">Moisture Content:</label>
+                            <label htmlFor="moistureContent">Moisture Content:</label>
                             <Input type="text" value={moistureContent} readOnly />
                         </FormRow>
                         <FormRow>
-                            <label htmlFor="gross_kgs">Gross Kgs:</label>
+                            <label htmlFor="grossKgs">Gross Kgs:</label>
                             <Input type="text" value={grossKgs} readOnly />
                         </FormRow>
                         <FormRow>
-                            <label htmlFor="mts_type">MTS Type:</label>
+                            <label htmlFor="mtsType">MTS Type:</label>
                             <Input type="text" value={mtsType} readOnly />
                         </FormRow>
                         <FormRow>
-                            <label htmlFor="sack_weight">Sack Weight:</label>
+                            <label htmlFor="sackWeight">Sack Weight:</label>
                             <Input type="text" value={sackWeight} readOnly />
                         </FormRow>
                         <FormRow>
@@ -401,28 +393,31 @@ const LogEntry = () => {
                             <Input type="text" value={enwf} readOnly />
                         </FormRow>
                         <FormRow>
-                            <label htmlFor="enw_kgs">ENW Kgs:</label>
+                            <label htmlFor="enwKgs">ENW Kgs:</label>
                             <Input type="text" value={enwKgs} readOnly />
                         </FormRow>
                         <FormRow>
-                            <label htmlFor="basic_cost">Basic Cost:</label>
+                            <label htmlFor="basicCost">Basic Cost:</label>
                             <Input type="text" value={basicCost} readOnly />
                         </FormRow>
-                        {/* ✅ FIX: Corrected the typo from FormFRow to FormRow. */}
                         <FormRow>
-                            <label htmlFor="pricer_cost">Pricer Cost:</label>
+                            <label htmlFor="pricerCost">Pricer Cost:</label>
                             <Input type="text" value={pricerCost} readOnly />
                         </FormRow>
                         <FormRow>
-                            <label htmlFor="grand_total">Grand Total:</label>
+                            <label htmlFor="grandTotal">Grand Total:</label>
                             <Input type="text" value={grandTotal} readOnly />
                         </FormRow>
                         <FormRow>
-                            <label htmlFor="sdo_name">SDO:</label>
+                            <label htmlFor="sdoName">SDO:</label>
                             <Input type="text" value={sdoName} readOnly />
                         </FormRow>
+                        <FormRow>
+                            <label htmlFor="riceRecovery">Rice Recovery:</label>
+                            <Input type="text" value={riceRecovery} readOnly />
+                        </FormRow>
                     </>
-                )}
+                )} */}
 
                 <SubmitButton type="submit">Add Log Entry</SubmitButton>
             </Form>
@@ -598,61 +593,61 @@ const SuccessMessage = styled.div`
 `;
 
 // --- New Styled Components for the Unlogged Deliveries Dashboard ---
-const UnloggedSection = styled.div`
-    background-color: #ecf0f1;
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-`;
+// These are now commented out to disable the feature.
+// const UnloggedSection = styled.div`
+//     background-color: #ecf0f1;
+//     border-radius: 8px;
+//     padding: 1.5rem;
+//     margin-bottom: 2rem;
+// `;
 
-const SectionTitle = styled.h3`
-    color: #34495e;
-    border-bottom: 2px solid #bdc3c7;
-    padding-bottom: 0.5rem;
-    margin-bottom: 1rem;
-    font-size: 1.4rem;
-    text-align: center;
-`;
+// const SectionTitle = styled.h3`
+//     color: #34495e;
+//     border-bottom: 2px solid #bdc3c7;
+//     padding-bottom: 0.5rem;
+//     margin-bottom: 1rem;
+//     font-size: 1.4rem;
+//     text-align: center;
+// `;
 
-const UnloggedList = styled.ul`
-    list-style: none;
-    padding: 0;
-    margin: 0;
-`;
+// const UnloggedTable = styled.table`
+//     width: 100%;
+//     border-collapse: collapse;
+//     background-color: #fff;
+//     border: 1px solid #ddd;
+//     border-radius: 8px;
+//     overflow: hidden;
 
-const UnloggedItem = styled.li`
-    background-color: #fff;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 1rem;
-    margin-bottom: 0.75rem;
-    display: flex;
-    flex-direction: column;
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
+//     th, td {
+//         padding: 12px;
+//         text-align: left;
+//         border-bottom: 1px solid #ddd;
+//     }
 
-    &:hover {
-        border-color: #3498db;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        transform: translateY(-2px);
-    }
-`;
+//     th {
+//         background-color: #f2f2f2;
+//         font-weight: bold;
+//         color: #555;
+//     }
 
-const LogButton = styled.button`
-    margin-top: 0.5rem;
-    padding: 0.5rem 1rem;
-    background-color: #3498db;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-    align-self: flex-start;
+//     tr:hover {
+//         background-color: #f9f9f9;
+//     }
+// `;
 
-    &:hover {
-        background-color: #2980b9;
-    }
-`;
+// const LogButton = styled.button`
+//     padding: 0.5rem 1rem;
+//     background-color: #3498db;
+//     color: white;
+//     border: none;
+//     border-radius: 4px;
+//     cursor: pointer;
+//     transition: background-color 0.3s ease;
+    
+//     &:hover {
+//         background-color: #2980b9;
+//     }
+// `;
 
 const ClearButton = styled.button`
     background-color: #e74c3c;

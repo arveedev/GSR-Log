@@ -1,5 +1,5 @@
 // This file sets up a React Context to manage the application's global state.
-// It handles data loading, saving to local storage, and provides functions to manipulate the data.
+// It handles data loading, saving to the backend server, and provides functions to manipulate the data.
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 // Import utility functions for parsing and creating CSV strings.
@@ -8,9 +8,6 @@ import { v4 as uuidv4 } from 'uuid'; // Import uuidv4 for generating unique IDs
 
 // Create a new Context. This is what components will use to access the data.
 export const AppDataContext = createContext(null);
-
-// Define the key for storing data in localStorage.
-const APP_DATA_STORAGE_KEY = 'gsr_log_app_data';
 
 /**
  * Generates the granular ENWF multipliers from 22.0 to 29.9.
@@ -46,25 +43,44 @@ export const AppDataContextProvider = ({ children }) => {
     // State to hold any errors that occur during data fetching.
     const [error, setError] = useState(null);
 
-    // This single useEffect handles all initial data loading when the component first mounts.
+    // New function to save data on the server
+    const saveAppDataOnServer = async (updatedData) => {
+        try {
+            const response = await fetch('http://localhost:3001/api/save-data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updatedData),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server error! Status: ${response.status}`);
+            }
+
+            console.log('Data successfully saved on the server.');
+        } catch (error) {
+            console.error('Error saving data:', error);
+            // You might want to handle this error in the UI, e.g., show a toast notification
+        }
+    };
+
+    // This single useEffect handles all initial data loading from the server.
     useEffect(() => {
         const loadInitialData = async () => {
             try {
                 let appData;
-                const savedData = localStorage.getItem(APP_DATA_STORAGE_KEY);
                 
-                if (savedData) {
-                    appData = JSON.parse(savedData);
+                // Fetch data from the backend
+                const response = await fetch('http://localhost:3001/get-data');
+                
+                if (response.status === 404) {
+                    console.log('No data file found on the server. Starting with default empty data.');
+                    appData = {};
+                } else if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
                 } else {
-                    const response = await fetch('http://localhost:3001/get-data');
-                    if (response.status === 404) {
-                        console.log('No data file found on the server. Starting with default empty data.');
-                        appData = {};
-                    } else if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    } else {
-                        appData = await response.json();
-                    }
+                    appData = await response.json();
                 }
 
                 // Ensure all necessary lists exist with default values if they are missing
@@ -86,73 +102,46 @@ export const AppDataContextProvider = ({ children }) => {
                 
                 const finalData = { ...defaultData, ...appData };
 
-                // Fix: Normalize varieties and mtsTypes data to use camelCase for grainType
-                finalData.varieties = finalData.varieties.map(item => ({
-                    ...item,
-                    grainType: item.grainType || item.grain_type,
-                    grain_type: undefined,
-                }));
-                finalData.mtsTypes = finalData.mtsTypes.map(item => ({
-                    ...item,
-                    grainType: item.grainType || item.grain_type,
-                    grain_type: undefined,
-                }));
-
-                // Fix: Normalize ricemills data to use camelCase for ownerRepresentative
+                // Fix: Normalize ricemills data keys to use camelCase
                 finalData.ricemills = finalData.ricemills.map(item => ({
                     ...item,
-                    ownerRepresentative: item.ownerRepresentative || item.owner_representative,
-                    owner_representative: undefined,
+                    contactNumber: item.contactNumber || item.contact_number,
+                    contact_number: undefined,
                 }));
                 
-                // Fix: Normalize logEntries to ensure all keys exist and have a value.
+                // Fix: Normalize palayPricing data by correctly parsing the JSON string and converting keys
+                finalData.palayPricing = finalData.palayPricing.map(item => ({
+                    ...item,
+                    varietyId: item.varietyId || item.variety_id,
+                    variety_id: undefined,
+                }));
+
+                // Normalize logEntries data keys to use camelCase
                 const normalizedLogEntries = finalData.logEntries.map(entry => {
                     return {
                         ...entry,
                         id: entry.id || uuidv4(),
-                        transactionType: entry.transactionType || entry.transaction_type || '',
+                        netKgs: entry.netKgs || entry.netkgs || 0,
+                        per50: entry.per50 || entry.per_50 || 0,
                         prNumber: entry.prNumber || entry.pr_number || '',
                         wsrNumber: entry.wsrNumber || entry.wsr_number || '',
                         entryType: entry.entryType || entry.entry_type || '',
                         moistureContent: entry.moistureContent || entry.moisture_content || '',
-                        grossKgs: entry.grossKgs || entry.gross_kgs || '',
+                        grossKgs: entry.grossKgs || entry.gross_kgs || 0,
                         mtsType: entry.mtsType || entry.mts_type || '',
-                        sackWeight: entry.sackWeight || entry.sack_weight || '',
-                        enwKgs: entry.enwKgs || entry.enw_kgs || '',
-                        basicCost: entry.basicCost || entry.basic_cost || '',
-                        pricerCost: entry.pricerCost || entry.pricer_cost || '',
-                        grandTotal: entry.grandTotal || entry.grand_total || '',
+                        sackWeight: entry.sackWeight || entry.sack_weight || 0,
+                        enwKgs: entry.enwKgs || entry.enw_kgs || 0,
+                        basicCost: entry.basicCost || entry.basic_cost || 0,
+                        pricerCost: entry.pricerCost || entry.pricer_cost || 0,
+                        grandTotal: entry.grandTotal || entry.grand_total || 0,
                         sdoName: entry.sdoName || entry.sdo_name || '',
                         isLogged: entry.isLogged || entry.is_logged || false,
                         aiNumber: entry.aiNumber || entry.ai_number || '',
-                        riceRecovery: entry.riceRecovery || entry.rice_recovery || '',
+                        riceRecovery: entry.riceRecovery || entry.rice_recovery || 0,
                     };
                 });
                 
                 finalData.logEntries = normalizedLogEntries;
-
-                // FIX: Normalize palayPricing data by correctly parsing the JSON string
-                finalData.palayPricing = finalData.palayPricing.map(item => {
-                    let moistureRanges = item.moistureRanges;
-                    
-                    // Check if the old key 'moisture_ranges' exists and is a string
-                    if (!moistureRanges && item.moisture_ranges && typeof item.moisture_ranges === 'string') {
-                         try {
-                             // Correctly parse the JSON string into an array of objects
-                             moistureRanges = JSON.parse(item.moisture_ranges);
-                         } catch (e) {
-                             console.error("Failed to parse moisture_ranges JSON string:", e);
-                             moistureRanges = []; // Default to an empty array on error
-                         }
-                    }
-                    
-                    return {
-                        ...item,
-                        moistureRanges: moistureRanges || [], // Ensure it's always an array
-                        moisture_ranges: undefined, // Clean up the old key
-                    };
-                });
-
 
                 if (!finalData.enwfRanges || finalData.enwfRanges.length === 0 || finalData.enwfRanges[0].moisture === undefined) {
                     finalData.enwfRanges = generateEnwfData();
@@ -174,50 +163,46 @@ export const AppDataContextProvider = ({ children }) => {
         };
         loadInitialData();
     }, []); // Empty dependency array ensures this runs only once.
-
-    // Effect to save data to localStorage whenever it changes.
-    useEffect(() => {
-        if (data) {
-            try {
-                localStorage.setItem(APP_DATA_STORAGE_KEY, JSON.stringify(data));
-            } catch (e) {
-                console.error("Failed to save data to localStorage", e);
-            }
-        }
-    }, [data]);
     
     // Function to add a new log entry.
     const addLogEntry = (newEntry) => {
-        setData(prevData => ({
-            ...prevData,
-            logEntries: [...prevData.logEntries, { ...newEntry, id: uuidv4() }],
-        }));
+        setData(prevData => {
+            const updatedLogEntries = [...prevData.logEntries, { ...newEntry, id: uuidv4() }];
+            const newData = { ...prevData, logEntries: updatedLogEntries };
+            saveAppDataOnServer(newData); // Save to server
+            return newData;
+        });
     };
 
     // Function to update an existing log entry.
     const updateLogEntry = (updatedEntry) => {
-        setData(prevData => ({
-            ...prevData,
-            logEntries: prevData.logEntries.map(entry =>
+        setData(prevData => {
+            const updatedLogEntries = prevData.logEntries.map(entry =>
                 entry.id === updatedEntry.id ? updatedEntry : entry
-            ),
-        }));
+            );
+            const newData = { ...prevData, logEntries: updatedLogEntries };
+            saveAppDataOnServer(newData); // Save to server
+            return newData;
+        });
     };
     
     // Function to delete a log entry.
     const deleteLogEntry = (entryToDelete) => {
-        setData(prevData => ({
-            ...prevData,
-            logEntries: prevData.logEntries.filter(entry => entry.id !== entryToDelete.id),
-        }));
+        setData(prevData => {
+            const updatedLogEntries = prevData.logEntries.filter(entry => entry.id !== entryToDelete.id);
+            const newData = { ...prevData, logEntries: updatedLogEntries };
+            saveAppDataOnServer(newData); // Save to server
+            return newData;
+        });
     };
 
     // Function to update the entire application data state
     const updateAppData = (updatedValues) => {
-        setData(prevData => ({
-            ...prevData,
-            ...updatedValues
-        }));
+        setData(prevData => {
+            const newData = { ...prevData, ...updatedValues };
+            saveAppDataOnServer(newData); // Save to server
+            return newData;
+        });
     };
     
     // Function to export all data to a CSV file.

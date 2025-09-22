@@ -64,6 +64,20 @@ const formatDateRange = (start, end) => {
     }
 };
 
+// NEW HELPER FUNCTION: Formats a number with commas and three decimal places.
+const formatNumber = (number) => {
+    // Ensure the input is a valid number.
+    if (number === null || number === undefined || isNaN(parseFloat(number))) {
+        return '';
+    }
+    // Use toLocaleString to handle both commas and decimal places.
+    // We specify minimumFractionDigits to ensure trailing zeros are kept.
+    return parseFloat(number).toLocaleString('en-US', {
+        minimumFractionDigits: 3,
+        maximumFractionDigits: 3
+    });
+};
+
 const DailySummary = () => {
     // Access global application data.
     const { data } = useAppData();
@@ -91,8 +105,8 @@ const DailySummary = () => {
 
         // Next, group the filtered entries into a nested object structure.
         filteredEntries.forEach(entry => {
-            // FIX: Changed transaction_type to transactionType to match the data model.
-            const { province, warehouse, transactionType, variety, bags, netkgs, per50 } = entry;
+            // Updated to use camelCase keys.
+            const { province, warehouse, transactionType, variety, bags, netKgs, per50 } = entry;
             
             // We use a nested object structure to group data.
             if (!groupedData[province]) {
@@ -101,24 +115,18 @@ const DailySummary = () => {
             if (!groupedData[province][warehouse]) {
                 groupedData[province][warehouse] = {};
             }
-            // FIX: Changed transaction_type to transactionType.
             if (!groupedData[province][warehouse][transactionType]) {
                 groupedData[province][warehouse][transactionType] = {};
             }
-            // FIX: Changed transaction_type to transactionType.
             if (!groupedData[province][warehouse][transactionType][variety]) {
-                // FIX: Changed transaction_type to transactionType.
                 groupedData[province][warehouse][transactionType][variety] = {
-                    totals: { bags: 0, netkgs: 0, per50: 0 }
+                    totals: { bags: 0, netKgs: 0, per50: 0 }
                 };
             }
             
             // Add to totals, converting string values to floats.
-            // FIX: Changed transaction_type to transactionType.
             groupedData[province][warehouse][transactionType][variety].totals.bags += parseFloat(bags);
-            // FIX: Changed transaction_type to transactionType.
-            groupedData[province][warehouse][transactionType][variety].totals.netkgs += parseFloat(netkgs);
-            // FIX: Changed transaction_type to transactionType.
+            groupedData[province][warehouse][transactionType][variety].totals.netKgs += parseFloat(netKgs);
             groupedData[province][warehouse][transactionType][variety].totals.per50 += parseFloat(per50);
         });
         
@@ -188,7 +196,6 @@ const DailySummary = () => {
                                                 <SectionBorder $color={warehouseColors.main} />
                                                 <h4>Warehouse: {warehouse}</h4>
                                             </SectionTitle>
-                                            {/* No change needed here, as the keys from the object are correct now. */}
                                             {Object.keys(summaryData[province][warehouse]).map(transaction => {
                                                 const transactionColors = getConsistentColor(transaction);
                                                 return (
@@ -206,9 +213,9 @@ const DailySummary = () => {
                                                                         <SectionBorder $color={varietyColors.main} />
                                                                         <h6>Variety: {variety}</h6>
                                                                         <VarietyTotals>
-                                                                            <span>Bags: <strong>{varietyData.totals.bags.toFixed(3)}</strong></span>
-                                                                            <span>Net Kgs: <strong>{varietyData.totals.netkgs.toFixed(3)}</strong></span>
-                                                                            <span>Per 50: <strong>{varietyData.totals.per50.toFixed(3)}</strong></span>
+                                                                            <span>Bags: <strong>{formatNumber(varietyData.totals.bags)}</strong></span>
+                                                                            <span>Net Kgs: <strong>{formatNumber(varietyData.totals.netKgs)}</strong></span>
+                                                                            <span>Per 50: <strong>{formatNumber(varietyData.totals.per50)}</strong></span>
                                                                         </VarietyTotals>
                                                                     </VarietyHeader>
                                                                 </Section>

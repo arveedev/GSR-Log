@@ -1,12 +1,6 @@
-// This component displays a searchable and sortable history of log entries.
-// It also provides functionality to edit and delete existing entries via modals.
-
-import React, { useState, useEffect, useCallback } from 'react';
-import styled from 'styled-components';
-// Custom hook to access the application's global data and functions.
+import React, { useState, useEffect } from 'react';
 import { useAppData } from '../../hooks/useAppData';
-// This hook is imported but not used in this file. It might be a leftover from a previous version.
-import { usePersistentState } from '../../hooks/usePersistentState';
+import styled from 'styled-components';
 
 // Helper function to format the date from YYYY-MM-DD to MM/DD/YY for display.
 const formatDate = (dateString) => {
@@ -15,44 +9,52 @@ const formatDate = (dateString) => {
     return `${month}/${day}/${year.slice(2)}`;
 };
 
+// NEW HELPER FUNCTION: Formats a number with comma separators.
+const formatNumberWithCommas = (number) => {
+    if (number === null || number === undefined || number === '') {
+        return '';
+    }
+    // Using a try-catch block to handle cases where the input is not a valid number.
+    try {
+        // parseFloat is used to ensure the value is treated as a number.
+        return parseFloat(number).toLocaleString('en-US');
+    } catch (e) {
+        return number; // Return the original value if parsing fails.
+    }
+};
+
 const LogHistory = () => {
-    // Destructure data and functions from the global application context.
     const { data, updateLogEntry, deleteLogEntry } = useAppData();
 
-    // State for the search bar input.
     const [searchTerm, setSearchTerm] = useState('');
-    // State to manage the sorting configuration (which column and direction).
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
-    
-    // State to control the visibility of the edit and delete modals.
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    // State to hold the log entry that is currently being edited or deleted.
     const [selectedEntry, setSelectedEntry] = useState(null);
 
-    // State for the form fields within the edit modal.
     const [editForm, setEditForm] = useState({
         date: '',
         province: '',
         warehouse: '',
         bags: '',
-        netkgs: '',
+        netKgs: '',
         per50: '',
         variety: '',
-        transactionType: '', 
+        transactionType: '',
+        riceMill: '',
+        aiNumber: '',
         remarks: '',
     });
 
-    // Sorts the data alphabetically for dropdown menus in the edit modal.
     const sortedProvinces = [...data.provinces].sort((a, b) => a.name.localeCompare(b.name));
     const sortedTransactionTypes = [...data.transactionTypes].sort((a, b) => a.name.localeCompare(b.name));
     const sortedVarieties = [...data.varieties].sort((a, b) => a.name.localeCompare(b.name));
+    const sortedRiceMills = [...data.riceMills].sort((a, b) => a.name.localeCompare(b.name));
 
-    // This effect handles the logic for the edit modal's warehouse dropdown.
     useEffect(() => {
         if (!isEditModalOpen) return;
 
-        const selectedWarehouseInList = data.warehouses.some(w => 
+        const selectedWarehouseInList = data.warehouses.some(w =>
             w.province === editForm.province && w.name === editForm.warehouse
         );
 
@@ -64,21 +66,19 @@ const LogHistory = () => {
         }
     }, [editForm.province, editForm.warehouse, isEditModalOpen, data.warehouses]);
 
-    // Filters log entries based on the search term.
     const filteredEntries = data.logEntries.filter(entry => {
         return Object.values(entry).some(value =>
             String(value).toLowerCase().includes(searchTerm.toLowerCase())
         );
     });
 
-    // Sorts the filtered entries based on the current sort configuration.
     const sortedEntries = [...filteredEntries].sort((a, b) => {
         if (!sortConfig.key) {
             return 0;
         }
         const aValue = a[sortConfig.key];
         const bValue = b[sortConfig.key];
-        
+
         if (aValue < bValue) {
             return sortConfig.direction === 'ascending' ? -1 : 1;
         }
@@ -88,7 +88,6 @@ const LogHistory = () => {
         return 0;
     });
 
-    // Handles a request to sort a column.
     const requestSort = (key) => {
         let direction = 'ascending';
         if (sortConfig.key === key && sortConfig.direction === 'ascending') {
@@ -97,15 +96,13 @@ const LogHistory = () => {
         setSortConfig({ key, direction });
     };
 
-    // Returns the appropriate sort icon based on the current sort configuration.
     const getSortIcon = (key) => {
         if (sortConfig.key !== key) {
             return '↕️';
         }
         return sortConfig.direction === 'ascending' ? '⬆️' : '⬇️';
     };
-    
-    // Opens the edit modal and populates the form with the selected entry's data.
+
     const handleEditClick = (entry) => {
         setSelectedEntry(entry);
         setEditForm({
@@ -113,26 +110,26 @@ const LogHistory = () => {
             province: entry.province,
             warehouse: entry.warehouse,
             bags: entry.bags,
-            netkgs: entry.netkgs,
+            netKgs: entry.netKgs,
             per50: entry.per50,
             variety: entry.variety,
             transactionType: entry.transactionType,
+            riceMill: entry.ricemill,
+            aiNumber: entry.aiNumber,
             remarks: entry.remarks,
         });
         setIsEditModalOpen(true);
     };
 
-    // Opens the delete confirmation modal.
     const handleDeleteClick = (entry) => {
         setSelectedEntry(entry);
         setIsDeleteModalOpen(true);
     };
 
-    // Handles the form submission for editing an entry.
     const handleEditSubmit = (e) => {
         e.preventDefault();
         if (selectedEntry) {
-            const per50 = (parseFloat(editForm.netkgs) / 50).toFixed(3);
+            const per50 = (parseFloat(editForm.netKgs) / 50).toFixed(3);
             const updatedEntry = {
                 ...selectedEntry,
                 ...editForm,
@@ -143,8 +140,7 @@ const LogHistory = () => {
             setSelectedEntry(null);
         }
     };
-    
-    // Handles the confirmation of an entry deletion.
+
     const handleDeleteConfirm = () => {
         if (selectedEntry) {
             deleteLogEntry(selectedEntry);
@@ -153,14 +149,12 @@ const LogHistory = () => {
         }
     };
 
-    // Handles changes to the form fields in the edit modal.
     const handleEditFormChange = (e) => {
         const { name, value } = e.target;
         setEditForm(prev => ({ ...prev, [name]: value }));
     };
 
-    // Filters the warehouses list for the edit modal based on the selected province.
-    const filteredEditWarehouses = editForm.province 
+    const filteredEditWarehouses = editForm.province
         ? [...data.warehouses].filter(w => w.province === editForm.province).sort((a, b) => a.name.localeCompare(b.name))
         : [];
 
@@ -175,7 +169,7 @@ const LogHistory = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </SearchContainer>
-            
+
             <TableWrapper>
                 <HistoryTable>
                     <thead>
@@ -184,12 +178,14 @@ const LogHistory = () => {
                             <TableHeader onClick={() => requestSort('province')}><span>Province</span><SortIcon>{getSortIcon('province')}</SortIcon></TableHeader>
                             <TableHeader onClick={() => requestSort('warehouse')}><span>Warehouse</span><SortIcon>{getSortIcon('warehouse')}</SortIcon></TableHeader>
                             <TableHeader onClick={() => requestSort('bags')}><span>Bags</span><SortIcon>{getSortIcon('bags')}</SortIcon></TableHeader>
-                            <TableHeader onClick={() => requestSort('netkgs')}><span>Net Kgs</span><SortIcon>{getSortIcon('netkgs')}</SortIcon></TableHeader>
+                            <TableHeader onClick={() => requestSort('netKgs')}><span>Net Kgs</span><SortIcon>{getSortIcon('netKgs')}</SortIcon></TableHeader>
                             <TableHeader onClick={() => requestSort('per50')}><span>Per 50</span><SortIcon>{getSortIcon('per50')}</SortIcon></TableHeader>
                             <TableHeader onClick={() => requestSort('variety')}><span>Variety</span><SortIcon>{getSortIcon('variety')}</SortIcon></TableHeader>
                             <TableHeader onClick={() => requestSort('transactionType')}><span>Type</span><SortIcon>{getSortIcon('transactionType')}</SortIcon></TableHeader>
+                            <TableHeader onClick={() => requestSort('ricemill')}><span>Ricemill</span><SortIcon>{getSortIcon('ricemill')}</SortIcon></TableHeader>
+                            <TableHeader onClick={() => requestSort('aiNumber')}><span>AI Number</span><SortIcon>{getSortIcon('aiNumber')}</SortIcon></TableHeader>
                             <TableHeader>Remarks</TableHeader>
-                            <TableHeader $actionHeader>Actions</TableHeader>
+                            <TableHeader>Actions</TableHeader>
                         </tr>
                     </thead>
                     <tbody>
@@ -199,11 +195,13 @@ const LogHistory = () => {
                                     <TableCell>{formatDate(entry.date)}</TableCell>
                                     <TableCell>{entry.province}</TableCell>
                                     <TableCell>{entry.warehouse}</TableCell>
-                                    <TableCell>{entry.bags}</TableCell>
-                                    <TableCell>{entry.netkgs}</TableCell>
-                                    <TableCell>{entry.per50}</TableCell>
+                                    <TableCell>{formatNumberWithCommas(entry.bags)}</TableCell>
+                                    <TableCell>{formatNumberWithCommas(entry.netKgs)}</TableCell>
+                                    <TableCell>{formatNumberWithCommas(entry.per50)}</TableCell>
                                     <TableCell>{entry.variety}</TableCell>
                                     <TableCell>{entry.transactionType}</TableCell>
+                                    <TableCell>{entry.ricemill}</TableCell>
+                                    <TableCell>{entry.aiNumber}</TableCell>
                                     <TableCell $remarksCell>{entry.remarks}</TableCell>
                                     <TableCell $actionsCell>
                                         <ActionButton onClick={() => handleEditClick(entry)}>✏️</ActionButton>
@@ -213,112 +211,137 @@ const LogHistory = () => {
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan="10" style={{ textAlign: 'center' }}>No matching entries found.</TableCell>
+                                <TableCell colSpan="12" style={{ textAlign: 'center' }}>No matching entries found.</TableCell>
                             </TableRow>
                         )}
                     </tbody>
                 </HistoryTable>
             </TableWrapper>
 
-            {/* Reusable Modal Components */}
             {/* Edit Modal */}
-            <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)}>
-                <ModalHeader>Edit Log Entry</ModalHeader>
-                <Form onSubmit={handleEditSubmit}>
-                    <FormRow>
-                        <label htmlFor="edit-date">Date:</label>
-                        <Input type="date" id="edit-date" name="date" value={editForm.date} onChange={handleEditFormChange} required />
-                    </FormRow>
-                    <FormRow>
-                        <label htmlFor="edit-province">Province:</label>
-                        <Select id="edit-province" name="province" value={editForm.province} onChange={handleEditFormChange} required>
-                            <option value="">Select Province</option>
-                            {sortedProvinces.map((p, index) => (
-                                <option key={index} value={p.name}>{p.name}</option>
-                            ))}
-                        </Select>
-                    </FormRow>
-                    <FormRow>
-                        <label htmlFor="edit-warehouse">Warehouse:</label>
-                        <Select id="edit-warehouse" name="warehouse" value={editForm.warehouse} onChange={handleEditFormChange} disabled={!editForm.province} required>
-                            <option value="">Select Warehouse</option>
-                            {filteredEditWarehouses.map((w, index) => (
-                                <option key={index} value={w.name}>{w.name}</option>
-                            ))}
-                        </Select>
-                    </FormRow>
-                    <FormRow>
-                        <label htmlFor="edit-transactionType">Transaction Type:</label>
-                        <Select id="edit-transactionType" name="transactionType" value={editForm.transactionType} onChange={handleEditFormChange} required>
-                            <option value="">Select Type</option>
-                            {sortedTransactionTypes.map((t, index) => (
-                                <option key={index} value={t.name}>{t.name}</option>
-                            ))}
-                        </Select>
-                    </FormRow>
-                    <FormRow>
-                        <label htmlFor="edit-variety">Variety:</label>
-                        <Select id="edit-variety" name="variety" value={editForm.variety} onChange={handleEditFormChange} required>
-                            <option value="">Select Variety</option>
-                            {sortedVarieties.map((v, index) => (
-                                <option key={index} value={v.name}>{v.name}</option>
-                            ))}
-                        </Select>
-                    </FormRow>
-                    <FormRow>
-                        <label htmlFor="edit-bags">Bags:</label>
-                        <Input type="number" step="0.001" id="edit-bags" name="bags" value={editForm.bags} onChange={handleEditFormChange} required/>
-                    </FormRow>
-                    <FormRow>
-                        <label htmlFor="edit-netkgs">Net Kgs:</label>
-                        <Input type="number" step="0.001" id="edit-netkgs" name="netkgs" value={editForm.netkgs} onChange={handleEditFormChange} required/>
-                    </FormRow>
-                    <FormRow>
-                        <label htmlFor="edit-per50">Per 50:</label>
-                        <Input type="text" id="edit-per50" name="per50" value={(parseFloat(editForm.netkgs) / 50).toFixed(3)} readOnly disabled />
-                    </FormRow>
-                    <FormRow $fullWidth>
-                        <label htmlFor="edit-remarks">Remarks:</label>
-                        <TextArea id="edit-remarks" name="remarks" value={editForm.remarks} onChange={handleEditFormChange} />
-                    </FormRow>
-                    <FormActions>
-                        <ActionButton type="submit">Save Changes</ActionButton>
-                        <CancelButton onClick={() => setIsEditModalOpen(false)}>Cancel</CancelButton>
-                    </FormActions>
-                </Form>
-            </Modal>
+            {isEditModalOpen && (
+                <ModalOverlay>
+                    <ModalContent>
+                        <ModalHeader>Edit Log Entry</ModalHeader>
+                        <Form onSubmit={handleEditSubmit}>
+                            <FormRow>
+                                <label htmlFor="edit-date">Date:</label>
+                                <Input type="date" id="edit-date" name="date" value={editForm.date} onChange={handleEditFormChange} required />
+                            </FormRow>
+                            <FormRow>
+                                <label htmlFor="edit-province">Province:</label>
+                                <Select id="edit-province" name="province" value={editForm.province} onChange={handleEditFormChange} required>
+                                    <option value="">Select Province</option>
+                                    {sortedProvinces.map((p, index) => (
+                                        <option key={index} value={p.name}>{p.name}</option>
+                                    ))}
+                                </Select>
+                            </FormRow>
+                            <FormRow>
+                                <label htmlFor="edit-warehouse">Warehouse:</label>
+                                <Select id="edit-warehouse" name="warehouse" value={editForm.warehouse} onChange={handleEditFormChange} disabled={!editForm.province} required>
+                                    <option value="">Select Warehouse</option>
+                                    {filteredEditWarehouses.map((w, index) => (
+                                        <option key={index} value={w.name}>{w.name}</option>
+                                    ))}
+                                </Select>
+                            </FormRow>
+                            <FormRow>
+                                <label htmlFor="edit-transactionType">Transaction Type:</label>
+                                <Select id="edit-transactionType" name="transactionType" value={editForm.transactionType} onChange={handleEditFormChange} required>
+                                    <option value="">Select Type</option>
+                                    {sortedTransactionTypes.map((t, index) => (
+                                        <option key={index} value={t.name}>{t.name}</option>
+                                    ))}
+                                </Select>
+                            </FormRow>
+                            <FormRow>
+                                <label htmlFor="edit-variety">Variety:</label>
+                                <Select id="edit-variety" name="variety" value={editForm.variety} onChange={handleEditFormChange} required>
+                                    <option value="">Select Variety</option>
+                                    {sortedVarieties.map((v, index) => (
+                                        <option key={index} value={v.name}>{v.name}</option>
+                                    ))}
+                                </Select>
+                            </FormRow>
+                            {editForm.transactionType === 'MILLING' && (
+                                <>
+                                    <FormRow>
+                                        <label htmlFor="edit-riceMill">Ricemill Name:</label>
+                                        <Select
+                                            id="edit-riceMill"
+                                            name="riceMill"
+                                            value={editForm.riceMill}
+                                            onChange={handleEditFormChange}
+                                            disabled={editForm.variety === 'WD1'}
+                                            required={editForm.variety !== 'WD1'}
+                                        >
+                                            <option value="">Select Ricemill</option>
+                                            {sortedRiceMills.map((r, index) => (
+                                                <option key={index} value={r.name}>{r.name}</option>
+                                            ))}
+                                        </Select>
+                                    </FormRow>
+                                    <FormRow>
+                                        <label htmlFor="edit-aiNumber">AI Number:</label>
+                                        <Input
+                                            type="text"
+                                            id="edit-aiNumber"
+                                            name="aiNumber"
+                                            value={editForm.aiNumber}
+                                            onChange={handleEditFormChange}
+                                            disabled={editForm.variety === 'WD1'}
+                                            required={editForm.variety !== 'WD1'}
+                                        />
+                                    </FormRow>
+                                </>
+                            )}
+                            <FormRow>
+                                <label htmlFor="edit-bags">Bags:</label>
+                                <Input type="number" step="0.001" id="edit-bags" name="bags" value={editForm.bags} onChange={handleEditFormChange} required />
+                            </FormRow>
+                            <FormRow>
+                                <label htmlFor="edit-netKgs">Net Kgs:</label>
+                                <Input type="number" step="0.001" id="edit-netKgs" name="netKgs" value={editForm.netKgs} onChange={handleEditFormChange} required />
+                            </FormRow>
+                            <FormRow>
+                                <label htmlFor="edit-per50">Per 50:</label>
+                                <Input type="text" id="edit-per50" name="per50" value={(parseFloat(editForm.netKgs) / 50).toFixed(3)} readOnly disabled />
+                            </FormRow>
+                            <FormRow $fullWidth>
+                                <label htmlFor="edit-remarks">Remarks:</label>
+                                <TextArea id="edit-remarks" name="remarks" value={editForm.remarks} onChange={handleEditFormChange} />
+                            </FormRow>
+                            <FormActions>
+                                <ActionButton type="submit">Save Changes</ActionButton>
+                                <CancelButton type="button" onClick={() => setIsEditModalOpen(false)}>Cancel</CancelButton>
+                            </FormActions>
+                        </Form>
+                    </ModalContent>
+                </ModalOverlay>
+            )}
 
             {/* Delete Confirmation Modal */}
-            <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)}>
-                <ModalHeader>Confirm Deletion</ModalHeader>
-                <p>Are you sure you want to delete this entry?</p>
-                <FormActions>
-                    <DeleteButton onClick={handleDeleteConfirm}>Delete</DeleteButton>
-                    <CancelButton onClick={() => setIsDeleteModalOpen(false)}>Cancel</CancelButton>
-                </FormActions>
-            </Modal>
+            {isDeleteModalOpen && (
+                <ModalOverlay>
+                    <ModalContent>
+                        <ModalHeader>Confirm Deletion</ModalHeader>
+                        <p>Are you sure you want to delete this entry?</p>
+                        <FormActions>
+                            <DeleteButton onClick={handleDeleteConfirm}>Delete</DeleteButton>
+                            <CancelButton onClick={() => setIsDeleteModalOpen(false)}>Cancel</CancelButton>
+                        </FormActions>
+                    </ModalContent>
+                </ModalOverlay>
+            )}
         </HistoryContainer>
     );
 };
 
 export default LogHistory;
 
-// Reusable Modal Component
-// This component provides a flexible, reusable way to display modal windows.
-const Modal = ({ isOpen, onClose, children }) => {
-    if (!isOpen) return null;
-    return (
-        <ModalOverlay onClick={onClose}>
-            <ModalContent onClick={(e) => e.stopPropagation()}>
-                {children}
-            </ModalContent>
-        </ModalOverlay>
-    );
-};
-
-// --- Styled Components ---
 const HistoryContainer = styled.div`
-    max-width: 1000px;
+    max-width: 100%;
     margin: 0 auto;
     padding: 20px;
     background-color: #fff;
@@ -353,7 +376,8 @@ const SearchInput = styled.input`
 `;
 
 const TableWrapper = styled.div`
-    overflow-x: auto;
+    max-height: 500px;
+    overflow: auto;
     -webkit-overflow-scrolling: touch;
 `;
 
@@ -361,10 +385,14 @@ const HistoryTable = styled.table`
     width: 100%;
     border-collapse: collapse;
     font-size: 0.9em;
-    table-layout: fixed;
+    table-layout: auto;
+    min-width: 1200px;
 `;
 
 const TableHeader = styled.th`
+    position: sticky;
+    top: 0;
+    z-index: 10;
     background-color: #f0f0f0;
     color: #333;
     padding: 12px;
@@ -373,18 +401,14 @@ const TableHeader = styled.th`
     white-space: nowrap;
     user-select: none;
     transition: background-color 0.3s ease;
-
     span {
         display: inline-block;
     }
-
     &:hover {
         background-color: #e6e6e6;
     }
-    
-    ${({ $actionHeader }) => $actionHeader && `
-        width: 100px;
-    `}
+    &:first-child { min-width: 100px; }
+    &:last-child { min-width: 100px; }
 `;
 
 const SortIcon = styled.span`
@@ -406,16 +430,13 @@ const TableRow = styled.tr`
 const TableCell = styled.td`
     padding: 12px;
     text-align: left;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    
+    white-space: normal;
+    overflow-wrap: break-word;
     ${({ $remarksCell }) => $remarksCell && `
         white-space: normal;
         overflow: visible;
         text-overflow: clip;
     `}
-    
     ${({ $actionsCell }) => $actionsCell && `
         display: flex;
         gap: 5px;
@@ -433,13 +454,11 @@ const ActionButton = styled.button`
     font-weight: bold;
     transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s ease;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    
     &:hover {
         background-color: #2980b9;
         transform: translateY(-1px);
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     }
-    
     &:active {
         transform: translateY(0);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -465,7 +484,6 @@ const ModalOverlay = styled.div`
     justify-content: center;
     z-index: 1000;
     animation: fadeIn 0.3s forwards;
-    
     @keyframes fadeIn {
         from { opacity: 0; }
         to { opacity: 1; }
@@ -482,7 +500,6 @@ const ModalContent = styled.div`
     width: 90%;
     border: 1px solid #e0e0e0;
     animation: slideIn 0.3s forwards;
-    
     @keyframes slideIn {
         from { transform: translateY(-20px); opacity: 0; }
         to { transform: translateY(0); opacity: 1; }
@@ -506,11 +523,9 @@ const Form = styled.form`
 const FormRow = styled.div`
     display: flex;
     flex-direction: column;
-    
     ${({ $fullWidth }) => $fullWidth && `
         grid-column: 1 / -1;
     `}
-    
     label {
         font-weight: bold;
         margin-bottom: 5px;
@@ -526,7 +541,6 @@ const Input = styled.input`
     font-size: 1em;
     transition: all 0.2s ease-in-out;
     box-sizing: border-box;
-    
     &:focus {
         outline: none;
         border-color: #3498db;
@@ -544,13 +558,11 @@ const Select = styled.select`
     cursor: pointer;
     transition: all 0.2s ease-in-out;
     box-sizing: border-box;
-    
     &:focus {
         outline: none;
         border-color: #3498db;
         box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.5);
     }
-    
     &:disabled {
         background-color: #f0f0f0;
         cursor: not-allowed;
@@ -565,7 +577,6 @@ const TextArea = styled.textarea`
     font-size: 1em;
     transition: all 0.2s ease-in-out;
     box-sizing: border-box;
-    
     &:focus {
         outline: none;
         border-color: #3498db;

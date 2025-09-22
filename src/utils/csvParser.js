@@ -7,31 +7,28 @@ import { generateEnwfData } from '../context/AppDataContext';
 
 // Helper function to fetch the CSV file asynchronously.
 const fetchCsv = async () => {
-  try {
-    const response = await fetch('/gsr_data.csv');
-    if (!response.ok) {
-      console.error('Failed to fetch CSV file:', response.statusText);
-      return '';
+    try {
+        const response = await fetch('/gsr_data.csv');
+        if (!response.ok) {
+            console.error('Failed to fetch CSV file:', response.statusText);
+            return '';
+        }
+        const text = await response.text();
+        return text;
+    } catch (error) {
+        console.error('Error fetching CSV file:', error);
+        return '';
     }
-    const text = await response.text();
-    return text;
-  } catch (error) {
-    console.error('Error fetching CSV file:', error);
-    return '';
-  }
 };
 
 // Helper function to correctly convert snake_case to camelCase.
 const toCamelCase = (str) => {
-  if (str.toLowerCase() === 'moisture') {
-    return 'range';
-  }
-  return str.replace(/_([a-z])/g, (match, p1) => p1.toUpperCase());
+    return str.replace(/_([a-z])/g, (match, p1) => p1.toUpperCase());
 };
 
 // Helper function to convert camelCase to snake_case for headers
 const toSnakeCase = (str) => {
-  return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+    return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
 };
 
 /**
@@ -40,90 +37,132 @@ const toSnakeCase = (str) => {
  * @returns {object} A structured object containing all the parsed data lists.
  */
 export const parseAppData = (csvString) => {
-  const data = {
-    provinces: [],
-    warehouses: [],
-    transactionTypes: [],
-    varieties: [],
-    mtsTypes: [],
-    enwfRanges: [],
-    pricing: {},
-    sdoList: [],
-    logEntries: [],
-    ricemills: [],
-    palayPricing: [],
-    ricePricing: [],
-  };
+    const data = {
+        provinces: [],
+        warehouses: [],
+        transactionTypes: [],
+        varieties: [],
+        mtsTypes: [],
+        enwfRanges: [],
+        pricing: {},
+        sdoList: [],
+        logEntries: [],
+        ricemills: [],
+        palayPricing: [],
+        ricePricing: [],
+    };
 
-  if (!csvString) {
-    return data;
-  }
-
-  const lines = csvString.split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0);
-  let currentSection = null;
-  let headers = [];
-
-  lines.forEach(line => {
-    if (line.startsWith('[') && line.endsWith(']')) {
-      currentSection = line.substring(1, line.length - 1).trim();
-      headers = [];
-      return;
+    if (!csvString) {
+        return data;
     }
 
-    if (currentSection) {
-      const parsed = Papa.parse(line).data[0];
-      const row = parsed;
+    const sections = Papa.parse(csvString.trim(), {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: (header) => {
+            const trimmedHeader = header.trim();
+            // Specific header transformations for backward compatibility
+            if (trimmedHeader === 'owner_representative') return 'ownerRepresentative';
+            if (trimmedHeader === 'contact_number') return 'contactNumber';
+            if (trimmedHeader === 'moisture_ranges') return 'moistureRanges';
+            if (trimmedHeader === 'variety_id') return 'varietyId';
+            
+            // Log entries specific conversions
+            if (trimmedHeader === 'netkgs') return 'netKgs';
+            if (trimmedHeader === 'per50') return 'per50';
+            if (trimmedHeader === 'transaction_type') return 'transactionType';
+            if (trimmedHeader === 'pr_number') return 'prNumber';
+            if (trimmedHeader === 'wsr_number') return 'wsrNumber';
+            if (trimmedHeader === 'entry_type') return 'entryType';
+            if (trimmedHeader === 'moisture_content') return 'moistureContent';
+            if (trimmedHeader === 'gross_kgs') return 'grossKgs';
+            if (trimmedHeader === 'mts_type') return 'mtsType';
+            if (trimmedHeader === 'sack_weight') return 'sackWeight';
+            if (trimmedHeader === 'enw_kgs') return 'enwKgs';
+            if (trimmedHeader === 'basic_cost') return 'basicCost';
+            if (trimmedHeader === 'pricer_cost') return 'pricerCost';
+            if (trimmedHeader === 'grand_total') return 'grandTotal';
+            if (trimmedHeader === 'sdo_name') return 'sdoName';
+            if (trimmedHeader === 'is_logged') return 'isLogged';
+            if (trimmedHeader === 'ai_number') return 'aiNumber';
+            if (trimmedHeader === 'rice_recovery') return 'riceRecovery';
 
-      if (row.length === 0 || (row.length === 1 && row[0] === '')) {
-        return;
-      }
+            return toCamelCase(trimmedHeader);
+        },
+        delimiter: ',',
+    });
 
-      if (headers.length === 0) {
-        headers = row.map(header => toCamelCase(header.trim()));
-        return;
-      }
+    const lines = csvString.split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0);
+    let currentSection = null;
+    let currentCsvData = '';
 
-      if (headers.length > 0) {
-        const item = {};
-        headers.forEach((header, index) => {
-          let value = row[index] !== undefined ? row[index].trim() : '';
-          
-          if (header === 'moistureRanges') {
-            try {
-              // Parse the JSON string back into an array
-              value = JSON.parse(value);
-            } catch (e) {
-              console.error("Failed to parse moistureRanges:", value, e);
-              value = [];
+    lines.forEach(line => {
+        if (line.startsWith('[') && line.endsWith(']')) {
+            if (currentSection && currentCsvData) {
+                const parsed = Papa.parse(currentCsvData, { header: true, skipEmptyLines: true, dynamicTyping: true });
+                let normalizedData = parsed.data;
+
+                // Normalize keys from snake_case to camelCase
+                normalizedData = normalizedData.map(item => {
+                    const newItem = {};
+                    for (const key in item) {
+                        const newKey = toCamelCase(key.trim());
+                        newItem[newKey] = item[key];
+                    }
+                    return newItem;
+                });
+                data[currentSection] = normalizedData;
             }
-          } else if (header === 'price' && !isNaN(parseFloat(value))) {
-            value = parseFloat(value);
-          } else if (!isNaN(parseFloat(value)) && isFinite(value) && value !== '') {
-            value = parseFloat(value);
-          }
-          item[header] = value;
-        });
-
-        item.id = item.id || uuidv4();
-        
-        if (data[currentSection]) {
-          data[currentSection].push(item);
+            currentSection = line.substring(1, line.length - 1).trim();
+            currentCsvData = '';
+        } else if (currentSection) {
+            currentCsvData += line + '\n';
         }
-      }
+    });
+
+    // Process the last section
+    if (currentSection && currentCsvData) {
+        const parsed = Papa.parse(currentCsvData, { header: true, skipEmptyLines: true, dynamicTyping: true });
+        let normalizedData = parsed.data;
+        normalizedData = normalizedData.map(item => {
+            const newItem = {};
+            for (const key in item) {
+                const newKey = toCamelCase(key.trim());
+                newItem[newKey] = item[key];
+            }
+            return newItem;
+        });
+        data[currentSection] = normalizedData;
     }
-  });
-  
-  return data;
+
+    return data;
 };
 
-// Helper function to escape values for CSV
-const escapeCsvValue = (value) => {
-  let strValue = String(value);
-  if (strValue.includes(',') || strValue.includes('"') || strValue.includes('\n')) {
-    const escapedValue = strValue.replace(/"/g, '""');
-    return `"${escapedValue}"`;
-  }
-  return strValue;
+// Define the full set of headers with the new camelCase convention
+const logEntryHeaders = [
+    'id', 'date', 'province', 'warehouse', 'bags', 'netKgs', 'per50', 'variety', 
+    'transactionType', 'remarks', 'prNumber', 'wsrNumber', 'name', 'barangay', 
+    'municipality', 'entryType', 'moistureContent', 'grossKgs', 'mtsType', 
+    'sackWeight', 'enwf', 'enwKgs', 'basicCost', 'pricer', 'pricerCost', 
+    'grandTotal', 'sdoName', 'isLogged', 'ricemill', 'aiNumber', 'riceRecovery'
+];
+
+// Function to get the headers for a specific section
+const getHeadersForSection = (sectionName) => {
+    switch (sectionName) {
+        case 'provinces': return ['id', 'name'];
+        case 'warehouses': return ['id', 'name', 'province'];
+        case 'transactionTypes': return ['id', 'name'];
+        case 'varieties': return ['id', 'name', 'grainType'];
+        case 'mtsTypes': return ['id', 'name', 'weight', 'grainType'];
+        case 'sdoList': return ['id', 'name', 'province'];
+        case 'enwfRanges': return ['id', 'moisture', 'enwf'];
+        case 'ricemills': return ['id', 'name', 'ownerRepresentative', 'address', 'contactNumber'];
+        case 'palayPricing': return ['id', 'varietyId', 'variety', 'moistureRanges'];
+        case 'ricePricing': return ['id', 'name', 'price', 'description'];
+        case 'logEntries': return logEntryHeaders;
+        default: return [];
+    }
 };
 
 /**
@@ -132,73 +171,57 @@ const escapeCsvValue = (value) => {
  * @returns {string} The raw CSV data as a string.
  */
 export const createCsvString = (data) => {
-  let output = '';
+    let output = '';
+    const sectionOrder = [
+        'provinces', 'warehouses', 'transactionTypes', 'varieties', 
+        'mtsTypes', 'sdoList', 'pricing', 'enwfRanges', 'ricemills', 
+        'palayPricing', 'ricePricing', 'logEntries'
+    ];
 
-  const sections = {
-    provinces: { headers: ['id', 'name'] },
-    warehouses: { headers: ['id', 'name', 'province'] },
-    transactionTypes: { headers: ['id', 'name'] },
-    varieties: { headers: ['id', 'name', 'grain_type'] },
-    mtsTypes: { headers: ['id', 'name', 'weight', 'grain_type'] },
-    sdoList: { headers: ['id', 'name', 'province'] },
-    enwfRanges: { headers: ['id', 'moisture', 'enwf'] },
-    ricemills: { headers: ['id', 'name', 'owner_representative', 'address', 'contact_number'] },
-    palayPricing: { headers: ['id', 'variety_id', 'variety', 'moisture_ranges'] },
-    ricePricing: { headers: ['id', 'name', 'price', 'description'] },
-    logEntries: { headers: ['id', 'date', 'province', 'warehouse', 'bags', 'netkgs', 'per50', 'variety', 'transaction_type', 'remarks', 'pr_number', 'wsr_number', 'name', 'barangay', 'municipality', 'entry_type', 'moisture_content', 'gross_kgs', 'mts_type', 'sack_weight', 'enwf', 'enw_kgs', 'basic_cost', 'pricer', 'pricer_cost', 'grand_total', 'sdo_name', 'is_logged', 'ricemill', 'ai_number', 'rice_recovery'] }
-  };
+    sectionOrder.forEach(sectionName => {
+        const sectionData = data[sectionName];
+        if (Array.isArray(sectionData) && sectionData.length > 0) {
+            const headers = getHeadersForSection(sectionName);
+            const csvSection = Papa.unparse(sectionData, { columns: headers });
+            output += `[${sectionName}]\n${csvSection}\n\n`;
+        } else if (sectionData && !Array.isArray(sectionData) && Object.keys(sectionData).length > 0) {
+            // Handle the 'pricing' section which is an object
+            const jsonArray = Object.keys(sectionData).map(key => ({ key, value: sectionData[key] }));
+            const csvSection = Papa.unparse(jsonArray);
+            output += `[${sectionName}]\n${csvSection}\n\n`;
+        }
+    });
 
-  for (const sectionName in sections) {
-    if (Array.isArray(data[sectionName]) && data[sectionName].length > 0) {
-      const sectionHeaders = sections[sectionName].headers;
-      output += `[${sectionName}]\n`;
-      output += sectionHeaders.join(',') + '\n';
-      
-      data[sectionName].forEach(item => {
-        const row = sectionHeaders.map(header => {
-          const camelCaseHeader = toCamelCase(header);
-          let value = item[camelCaseHeader];
-
-          if (camelCaseHeader === 'moistureRanges') {
-            // Stringify the array into a JSON string
-            value = JSON.stringify(value);
-          } else if (camelCaseHeader === 'price' && typeof value === 'number') {
-            value = value.toFixed(2);
-          }
-          
-          return escapeCsvValue(value !== undefined ? value : '');
-        });
-        output += row.join(',') + '\n';
-      });
-      output += '\n';
-    }
-  }
-
-  return output;
+    return output.trim();
 };
 
 export const loadAppData = async () => {
-  const csvString = await fetchCsv();
-  const parsedData = parseAppData(csvString);
+    const csvString = await fetchCsv();
+    const parsedData = parseAppData(csvString);
 
-  if (!parsedData.enwfRanges || !parsedData.enwfRanges[0] || parsedData.enwfRanges[0].range === undefined) {
-    parsedData.enwfRanges = generateEnwfData();
-  }
-  
-  parsedData.varieties = parsedData.varieties.map(v => ({
-    ...v,
-    grainType: v.grainType || ''
-  }));
-  
-  if (!parsedData.ricemills) {
-    parsedData.ricemills = [];
-  }
-  if (!parsedData.palayPricing) {
-    parsedData.palayPricing = [];
-  }
-  if (!parsedData.ricePricing) {
-    parsedData.ricePricing = [];
-  }
+    if (!parsedData.enwfRanges || !parsedData.enwfRanges[0] || parsedData.enwfRanges[0].moisture === undefined) {
+        parsedData.enwfRanges = generateEnwfData();
+    }
+    
+    // Ensure lists are always initialized as arrays
+    if (!parsedData.varieties) {
+        parsedData.varieties = [];
+    }
+    if (!parsedData.mtsTypes) {
+        parsedData.mtsTypes = [];
+    }
+    if (!parsedData.ricemills) {
+        parsedData.ricemills = [];
+    }
+    if (!parsedData.palayPricing) {
+        parsedData.palayPricing = [];
+    }
+    if (!parsedData.ricePricing) {
+        parsedData.ricePricing = [];
+    }
+    if (!parsedData.logEntries) {
+        parsedData.logEntries = [];
+    }
 
-  return parsedData;
+    return parsedData;
 };
