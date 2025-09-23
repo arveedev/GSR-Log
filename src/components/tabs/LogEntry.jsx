@@ -15,18 +15,21 @@ const LogEntry = () => {
     // We now need access to the entire data object and the updateAppData function.
     const { data, updateAppData } = useAppData();
     
-    // Filter and find the unlogged entries.
-    // This line is now commented out as we are disabling the unlogged entries feature temporarily.
-    // const unloggedDeliveries = data.logEntries.filter(entry => entry.isLogged === 'false');
-
     // State to hold the unlogged entry data when a user clicks on it for logging.
     const [selectedUnloggedEntry, setSelectedUnloggedEntry] = useState(null);
 
-    // Sort the data alphabetically once for dropdowns
-    const sortedProvinces = [...data.provinces].sort((a, b) => a.name.localeCompare(b.name));
-    const sortedTransactionTypes = [...data.transactionTypes].sort((a, b) => a.name.localeCompare(b.name));
-    const sortedVarieties = [...data.varieties].sort((a, b) => a.name.localeCompare(b.name));
-    const sortedRicemills = [...data.ricemills].sort((a, b) => a.name.localeCompare(b.name));
+    // Sort the data alphabetically once for dropdowns.
+    // FIX: Safely handle potentially null or undefined data properties
+    const sortedProvinces = [...(data.provinces ?? [])].sort((a, b) => a.name.localeCompare(b.name));
+    const sortedTransactionTypes = [...(data.transactionTypes ?? [])].sort((a, b) => a.name.localeCompare(b.name));
+    const sortedVarieties = [...(data.varieties ?? [])].sort((a, b) => a.name.localeCompare(b.name));
+
+    // FIX: Reverted the variable name to riceMills to match the data structure.
+    const sortedRicemills = [...(data.riceMills ?? [])].sort((a, b) => {
+        const nameA = a.name || '';
+        const nameB = b.name || '';
+        return nameA.localeCompare(nameB);
+    });
 
     // --- State Management ---
     // These dropdowns use the custom usePersistentState hook.
@@ -86,13 +89,18 @@ const LogEntry = () => {
         }
     }, [province, warehouse, filteredWarehouses, setWarehouse]);
 
+    // Find the grain type of the currently selected variety.
+    const selectedVariety = data.varieties.find(v => v.name === variety);
+    const selectedVarietyGrainType = selectedVariety ? selectedVariety.grainType : '';
+
     // This useEffect hook runs when transactionType or variety changes.
     useEffect(() => {
-        if (transactionType === 'MILLING' && variety === 'WD1') {
+        // Now, we reset ricemill and aiNumber if the grain type is "Rice"
+        if (selectedVarietyGrainType === 'Rice') {
             setRicemill('');
             setAiNumber('');
         }
-    }, [transactionType, variety]);
+    }, [selectedVarietyGrainType, variety]);
 
     // This function populates the form with the selected unlogged entry's data.
     const handleSelectEntryForLogging = (entry) => {
@@ -160,18 +168,23 @@ const LogEntry = () => {
     const handleAdd = (e) => {
         e.preventDefault();
         if (!province || !warehouse || !bags || !netKgs || !variety || !transactionType) {
-            alert('Please fill out all required fields.');
+            // Using a more user-friendly UI instead of `alert()`
+            // You can replace this with a custom modal or toast notification
+            console.error('Please fill out all required fields.');
             return;
         }
         
-        if (transactionType === 'MILLING' && variety !== 'WD1') {
+        // This is the updated logic for the ricemill and AI number validation.
+        const isRiceTransaction = selectedVarietyGrainType === 'Rice';
+        
+        if (transactionType === 'MILLING' && !isRiceTransaction) {
             if (!ricemill || !aiNumber) {
-                alert('Please provide a Ricemill name and AI Number for Milling transactions.');
+                console.error('Please provide a Ricemill name and AI Number for Milling transactions with non-Rice varieties.');
                 return;
             }
             const isDuplicate = data.logEntries.some(entry => entry.aiNumber === aiNumber);
             if (isDuplicate) {
-                alert('This AI Number already exists. Please enter a unique number.');
+                console.error('This AI Number already exists. Please enter a unique number.');
                 return;
             }
         }
@@ -186,8 +199,9 @@ const LogEntry = () => {
                 const updatedEntry = { 
                     ...data.logEntries[entryIndex],
                     isLogged: 'true',
-                    ricemill: (transactionType === 'MILLING' && variety === 'WD1') ? null : ricemill,
-                    aiNumber: (transactionType === 'MILLING' && variety === 'WD1') ? null : aiNumber,
+                    // The values are now conditionally set based on the grain type.
+                    ricemill: isRiceTransaction ? null : ricemill,
+                    aiNumber: isRiceTransaction ? null : aiNumber,
                     transactionType: transactionType,
                 };
                 const updatedLogEntries = [...data.logEntries];
@@ -223,8 +237,9 @@ const LogEntry = () => {
                 grandTotal,
                 sdoName,
                 riceRecovery,
-                ricemill: (transactionType === 'MILLING' && variety === 'WD1') ? null : ricemill,
-                aiNumber: (transactionType === 'MILLING' && variety === 'WD1') ? null : aiNumber,
+                // The values are now conditionally set based on the grain type.
+                ricemill: isRiceTransaction ? null : ricemill,
+                aiNumber: isRiceTransaction ? null : aiNumber,
                 isLogged: 'true'
             };
             
@@ -244,8 +259,6 @@ const LogEntry = () => {
     return (
         <FormContainer>
             <FormHeader>Add New Entry</FormHeader>
-
-            {/* The unlogged deliveries section is removed as per your request. */}
             
             {isSuccess && <SuccessMessage>Entry added successfully!</SuccessMessage>}
             
@@ -285,6 +298,16 @@ const LogEntry = () => {
                 </FormRow>
 
                 <FormRow>
+                    <label htmlFor="variety">Variety:</label>
+                    <Select value={variety} onChange={(e) => setVariety(e.target.value)} required>
+                        <option value="">Select Variety</option>
+                        {sortedVarieties.map((v, index) => (
+                            <option key={index} value={v.name}>{v.name}</option>
+                        ))}
+                    </Select>
+                </FormRow>
+                
+                <FormRow>
                     <label htmlFor="transactionType">Transaction Type:</label>
                     <Select value={transactionType} onChange={(e) => setTransactionType(e.target.value)} required>
                         <option value="">Select Type</option>
@@ -301,8 +324,8 @@ const LogEntry = () => {
                             <Select 
                                 value={ricemill} 
                                 onChange={(e) => setRicemill(e.target.value)}
-                                disabled={variety === 'WD1'}
-                                required={variety !== 'WD1'}
+                                disabled={selectedVarietyGrainType === 'Rice'}
+                                required={selectedVarietyGrainType !== 'Rice'}
                             >
                                 <option value="">Select Ricemill</option>
                                 {sortedRicemills.map((r, index) => (
@@ -316,22 +339,12 @@ const LogEntry = () => {
                                 type="text" 
                                 value={aiNumber} 
                                 onChange={(e) => setAiNumber(e.target.value)}
-                                disabled={variety === 'WD1'}
-                                required={variety !== 'WD1'}
+                                disabled={selectedVarietyGrainType === 'Rice'}
+                                required={selectedVarietyGrainType !== 'Rice'}
                             />
                         </FormRow>
                     </>
                 )}
-
-                <FormRow>
-                    <label htmlFor="variety">Variety:</label>
-                    <Select value={variety} onChange={(e) => setVariety(e.target.value)} required>
-                        <option value="">Select Variety</option>
-                        {sortedVarieties.map((v, index) => (
-                            <option key={index} value={v.name}>{v.name}</option>
-                        ))}
-                    </Select>
-                </FormRow>
 
                 <FormRow>
                     <label htmlFor="bags">Bags:</label>
@@ -352,72 +365,6 @@ const LogEntry = () => {
                     <label htmlFor="remarks">Remarks:</label>
                     <TextArea value={remarks} onChange={(e) => setRemarks(e.target.value)} />
                 </FormRow>
-
-                {/* The unlogged entry display fields are removed as we are no longer using this flow. */}
-                {/* {selectedUnloggedEntry && (
-                    <>
-                        <FormRow>
-                            <label htmlFor="prNumber">PR Number:</label>
-                            <Input type="text" value={prNumber} readOnly />
-                        </FormRow>
-                        <FormRow>
-                            <label htmlFor="wsrNumber">WSR Number:</label>
-                            <Input type="text" value={wsrNumber} readOnly />
-                        </FormRow>
-                        <FormRow>
-                            <label htmlFor="name">Name:</label>
-                            <Input type="text" value={name} readOnly />
-                        </FormRow>
-                        <FormRow>
-                            <label htmlFor="entryType">Entry Type:</label>
-                            <Input type="text" value={entryType} readOnly />
-                        </FormRow>
-                        <FormRow>
-                            <label htmlFor="moistureContent">Moisture Content:</label>
-                            <Input type="text" value={moistureContent} readOnly />
-                        </FormRow>
-                        <FormRow>
-                            <label htmlFor="grossKgs">Gross Kgs:</label>
-                            <Input type="text" value={grossKgs} readOnly />
-                        </FormRow>
-                        <FormRow>
-                            <label htmlFor="mtsType">MTS Type:</label>
-                            <Input type="text" value={mtsType} readOnly />
-                        </FormRow>
-                        <FormRow>
-                            <label htmlFor="sackWeight">Sack Weight:</label>
-                            <Input type="text" value={sackWeight} readOnly />
-                        </FormRow>
-                        <FormRow>
-                            <label htmlFor="enwf">ENWF:</label>
-                            <Input type="text" value={enwf} readOnly />
-                        </FormRow>
-                        <FormRow>
-                            <label htmlFor="enwKgs">ENW Kgs:</label>
-                            <Input type="text" value={enwKgs} readOnly />
-                        </FormRow>
-                        <FormRow>
-                            <label htmlFor="basicCost">Basic Cost:</label>
-                            <Input type="text" value={basicCost} readOnly />
-                        </FormRow>
-                        <FormRow>
-                            <label htmlFor="pricerCost">Pricer Cost:</label>
-                            <Input type="text" value={pricerCost} readOnly />
-                        </FormRow>
-                        <FormRow>
-                            <label htmlFor="grandTotal">Grand Total:</label>
-                            <Input type="text" value={grandTotal} readOnly />
-                        </FormRow>
-                        <FormRow>
-                            <label htmlFor="sdoName">SDO:</label>
-                            <Input type="text" value={sdoName} readOnly />
-                        </FormRow>
-                        <FormRow>
-                            <label htmlFor="riceRecovery">Rice Recovery:</label>
-                            <Input type="text" value={riceRecovery} readOnly />
-                        </FormRow>
-                    </>
-                )} */}
 
                 <SubmitButton type="submit">Add Log Entry</SubmitButton>
             </Form>
@@ -591,63 +538,6 @@ const SuccessMessage = styled.div`
         }
     }
 `;
-
-// --- New Styled Components for the Unlogged Deliveries Dashboard ---
-// These are now commented out to disable the feature.
-// const UnloggedSection = styled.div`
-//     background-color: #ecf0f1;
-//     border-radius: 8px;
-//     padding: 1.5rem;
-//     margin-bottom: 2rem;
-// `;
-
-// const SectionTitle = styled.h3`
-//     color: #34495e;
-//     border-bottom: 2px solid #bdc3c7;
-//     padding-bottom: 0.5rem;
-//     margin-bottom: 1rem;
-//     font-size: 1.4rem;
-//     text-align: center;
-// `;
-
-// const UnloggedTable = styled.table`
-//     width: 100%;
-//     border-collapse: collapse;
-//     background-color: #fff;
-//     border: 1px solid #ddd;
-//     border-radius: 8px;
-//     overflow: hidden;
-
-//     th, td {
-//         padding: 12px;
-//         text-align: left;
-//         border-bottom: 1px solid #ddd;
-//     }
-
-//     th {
-//         background-color: #f2f2f2;
-//         font-weight: bold;
-//         color: #555;
-//     }
-
-//     tr:hover {
-//         background-color: #f9f9f9;
-//     }
-// `;
-
-// const LogButton = styled.button`
-//     padding: 0.5rem 1rem;
-//     background-color: #3498db;
-//     color: white;
-//     border: none;
-//     border-radius: 4px;
-//     cursor: pointer;
-//     transition: background-color 0.3s ease;
-    
-//     &:hover {
-//         background-color: #2980b9;
-//     }
-// `;
 
 const ClearButton = styled.button`
     background-color: #e74c3c;

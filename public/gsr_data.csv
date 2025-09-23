@@ -28,6 +28,7 @@ id,name,grainType
 f00601c4-dc7f-468a-8fe7-bc774b48e74b,PWm,Palay
 f991e320-c5a1-490b-baf5-54efe2baf62c,PWs,Palay
 b4799033-a9c7-49a2-97e5-4065375c3dca,WD1,Rice
+ea361d49-4760-425f-b8f4-a6a3ff6cacff,RWD1,Rice
 
 [mtsTypes]
 id,name,weight,grainType
@@ -131,9 +132,9 @@ f5f5dc0b-29f4-4667-9de4-293e6e4be99c,Den's Ricemill,Alden Serrano,"Paclas, Libon
 ccf41c52-aae3-4eb8-b488-fbc58c8bf6fd,NFA-Owned Ricemill,NFA,"Virac, Catanduanes",0917-123-4567
 
 [palayPricing]
-id,varietyId,variety,moistureRanges
-22804278-9caf-4ffd-9cbb-76417281fe08,391f0710-d542-456a-b075-e6e2025ce009,PDs,[{"range":"9.0-14.0","price":23}]
-6c9c6a08-4dc3-427e-b2a7-2efeb845de6c,85a730ed-a6ad-42ae-bb27-728a92a6f233,PDm,[{"range":"9.0-14.0","price":23}]
+id,varietyId,variety,moistureRanges,field5
+22804278-9caf-4ffd-9cbb-76417281fe08,391f0710-d542-456a-b075-e6e2025ce009,PDs,[],"""price"":23}]"
+6c9c6a08-4dc3-427e-b2a7-2efeb845de6c,85a730ed-a6ad-42ae-bb27-728a92a6f233,PDm,[],"""price"":23}]"
 
 [ricePricing]
 id,name,price,description
@@ -141,22 +142,35 @@ id,name,price,description
 
 [logEntries]
 id,date,province,warehouse,bags,netKgs,per50,variety,transactionType,remarks,prNumber,wsrNumber,name,barangay,municipality,entryType,moistureContent,grossKgs,mtsType,sackWeight,enwf,enwKgs,basicCost,pricer,pricerCost,grandTotal,sdoName,isLogged,ricemill,aiNumber,riceRecovery
-e0462f7f-78c4-433f-95ca-36cc2d4fdd85,2025-09-16,CATANDUANES,GID 2,64,3172.2,63.444,WD1,ISSUE,,,,,,,,,,,,,,,,,,,false,,,
-0a6cb8a6-7e3f-4fab-a7c2-302e63c1946d,2025-09-16,CATANDUANES,GID 2,101,5000,100,PDs,RECEIPT,,,,,,,,,,,,,,,,,,,false,,,
-e61107af-3162-4f30-b245-113a62acf15f,2025-09-16,ALBAY,BSI Libon,322,17247.15,344.943,PDm,PROCUREMENT,,,,,,,,,,,,,,,,,,,false,,,
-db630052-ebee-42e9-92f9-f210d99852a2,2025-09-16,ALBAY,BSI Libon,144,6452.31,129.046,PWm,TRANSFER,transferred to PHF,,,,,,,,,,,,,,,,,,false,,,
-bf656643-e2ca-4be0-b6f5-4e9c4b3db653,2025-09-16,ALBAY,ABACORP,100,5000,100,WD1,SALES,FTI,,,,,,,,,,,,,,,,,,false,,,
-d95b8b33-4140-4951-ad0c-78e95b7b4c2c,2025-09-17,CATANDUANES,GID 2,64,3176.2,63.524,WD1,ISSUE,,,,,,,,,,,,,,,,,,,false,,,
-b74788bb-20cc-4709-8603-90080c8757ce,2025-09-17,CATANDUANES,GID 2,101,5000,100,PDs,RECEIPT,,,,,,,,,,,,,,,,,,,false,,,
-5df75875-8271-462a-b0a6-7807a0d9c3e8,2025-09-18,CATANDUANES,GID 2,64,3174.2,63.484,WD1,MILLING,NFA Owned Milling,,,,,,,,,,,,,,,,,,false,,,
-5aa1850c-730f-4e0e-9986-3e196285a031,2025-09-18,CATANDUANES,GID 2,101,5000,100,PDs,MILLING,,,,,,,,,,,,,,,,,,,false,,,
-c185c231-1833-440b-b55a-928c75e36cd8,2025-09-18,ALBAY,Tabaco GID,338,17500,350.000,PDs,MILLING,Batch 1 of 22,,,,,,,,,,,,,,,,,,false,Barlet Ricemill,26318292,
-8f6d0cee-5244-42b9-8b60-2bf58f287b24,2025-09-19,ALBAY,Sy,350,17500,350.000,PDs,MILLING,Batch 2 of 22,,,,,,,,,,,,,,,,,,false,Barlet Ricemill,26318307,
-70a6eb24-6424-468f-b097-89171d146f8e,2025-09-19,ALBAY,Tabaco GID,1000,50000,1000.000,PDm,MILLING,Batch 2 of 8,,,,,,,,,,,,,,,,,,false,Den's Ricemill,26318308,
-b724aaac-6a00-43ab-bf83-2651997bf057,2025-09-19,ALBAY,Leg GID,12,600,12.000,WD1,ISSUE,BJMP,,,,,,,,,,,,,,,,,,false,,,
-2493c3d1-c3e6-407f-bc5e-50a5129edd73,2025-09-19,ALBAY,BSI Libon,196,10852.008,217.040,PDm,RECEIPT,,,,,,,,,,,,,,,,,,,false,,,
-2263fb07-9746-4c27-a227-184286844878,2025-09-19,ALBAY,BSI Libon,106,5556.188,111.124,PDm,TRANSFER,from PHF,,,,,,,,,,,,,,,,,,false,,,
-158c2fe8-e9d7-4efc-b50a-4c517e55292a,2025-09-19,CATANDUANES,GID 2,64,3170.2,63.404,WD1,ISSUE,from Milling,,,,,,,,,,,,,,,,,,false,,,
-8e0bfb1e-c5a9-4bc1-af78-fc77466f3723,2025-09-19,CATANDUANES,GID 2,101,5000,100.000,PDs,MILLING,for Milling,,,,,,,,,,,,,,,,,,false,,,
-31002727-0027-4904-a583-9f6af57d15ed,2025-09-19,CATANDUANES,GID 2,10,500,10.000,WD1,ISSUE,BJMP,,,,,,,,,,,,,,,,,,false,,,
-f1d499a1-fc5f-4257-9f9c-aab312e60fd3,2025-09-22,ALBAY,Sy,1000,50000,1000.000,PDs,MILLING,Batch 3 of 8,,,,,,,,,,,,,,,,,,,Den's Ricemill,26318324,
+e0462f7f-78c4-433f-95ca-36cc2d4fdd85,2025-09-16,CATANDUANES,GID 2,64,3172.2,63.444,WD1,ISSUE,,,,,,,,,0,,0,,0,0,,0,0,,false,,,0
+0a6cb8a6-7e3f-4fab-a7c2-302e63c1946d,2025-09-16,CATANDUANES,GID 2,101,5000,100,PDs,RECEIPT,,,,,,,,,0,,0,,0,0,,0,0,,false,,,0
+e61107af-3162-4f30-b245-113a62acf15f,2025-09-16,ALBAY,BSI Libon,322,17247.15,344.943,PDm,PROCUREMENT,,,,,,,,,0,,0,,0,0,,0,0,,false,,,0
+db630052-ebee-42e9-92f9-f210d99852a2,2025-09-16,ALBAY,BSI Libon,144,6452.31,129.046,PWm,TRANSFER,transferred to PHF,,,,,,,,0,,0,,0,0,,0,0,,false,,,0
+bf656643-e2ca-4be0-b6f5-4e9c4b3db653,2025-09-16,ALBAY,ABACORP,100,5000,100,WD1,SALES,FTI,,,,,,,,0,,0,,0,0,,0,0,,false,,,0
+d95b8b33-4140-4951-ad0c-78e95b7b4c2c,2025-09-17,CATANDUANES,GID 2,64,3176.2,63.524,WD1,ISSUE,,,,,,,,,0,,0,,0,0,,0,0,,false,,,0
+b74788bb-20cc-4709-8603-90080c8757ce,2025-09-17,CATANDUANES,GID 2,101,5000,100,PDs,RECEIPT,,,,,,,,,0,,0,,0,0,,0,0,,false,,,0
+5df75875-8271-462a-b0a6-7807a0d9c3e8,2025-09-18,CATANDUANES,GID 2,64,3174.2,63.484,WD1,MILLING,NFA Owned Milling,,,,,,,,0,,0,,0,0,,0,0,,false,,,0
+5aa1850c-730f-4e0e-9986-3e196285a031,2025-09-18,CATANDUANES,GID 2,101,5000,100,PDs,MILLING,,,,,,,,,0,,0,,0,0,,0,0,,false,,,0
+c185c231-1833-440b-b55a-928c75e36cd8,2025-09-18,ALBAY,Tabaco GID,338,17500,350.000,PDs,MILLING,Batch 1 of 22,,,,,,,,0,,0,,0,0,,0,0,,false,Barlet Ricemill,26318292,0
+8f6d0cee-5244-42b9-8b60-2bf58f287b24,2025-09-19,ALBAY,Sy,350,17500,350.000,PDs,MILLING,Batch 2 of 22,,,,,,,,0,,0,,0,0,,0,0,,false,Barlet Ricemill,26318307,0
+70a6eb24-6424-468f-b097-89171d146f8e,2025-09-19,ALBAY,Tabaco GID,1000,50000,1000.000,PDm,MILLING,Batch 2 of 8,,,,,,,,0,,0,,0,0,,0,0,,false,Den's Ricemill,26318308,0
+b724aaac-6a00-43ab-bf83-2651997bf057,2025-09-19,ALBAY,Leg GID,12,600,12.000,WD1,ISSUE,BJMP,,,,,,,,0,,0,,0,0,,0,0,,false,,,0
+2493c3d1-c3e6-407f-bc5e-50a5129edd73,2025-09-19,ALBAY,BSI Libon,196,10852.008,217.040,PDm,RECEIPT,,,,,,,,,0,,0,,0,0,,0,0,,false,,,0
+2263fb07-9746-4c27-a227-184286844878,2025-09-19,ALBAY,BSI Libon,106,5556.188,111.124,PDm,TRANSFER,from PHF,,,,,,,,0,,0,,0,0,,0,0,,false,,,0
+158c2fe8-e9d7-4efc-b50a-4c517e55292a,2025-09-19,CATANDUANES,GID 2,64,3170.2,63.404,WD1,ISSUE,from Milling,,,,,,,,0,,0,,0,0,,0,0,,false,,,0
+8e0bfb1e-c5a9-4bc1-af78-fc77466f3723,2025-09-19,CATANDUANES,GID 2,101,5000,100.000,PDs,MILLING,for Milling,,,,,,,,0,,0,,0,0,,0,0,,false,,,0
+31002727-0027-4904-a583-9f6af57d15ed,2025-09-19,CATANDUANES,GID 2,10,500,10.000,WD1,ISSUE,BJMP,,,,,,,,0,,0,,0,0,,0,0,,false,,,0
+f1d499a1-fc5f-4257-9f9c-aab312e60fd3,2025-09-22,ALBAY,Sy,1000,50000,1000.000,PDs,MILLING,Batch 3 of 8,,,,,,,,0,,0,,0,0,,0,0,,false,Den's Ricemill,26318324,0
+27a68b01-26f7-4fc8-824f-0f5819b32789,2025-09-22,ALBAY,ABACORP,630,31500,630.000,WD1,MILLING,Den's Batch 1 RR,,,,,,,,0,,0,,0,0,,0,0,,true,,,0
+2953f3c7-c490-4398-b110-73d8d8a3a1cf,2025-09-22,ALBAY,ABACORP,221,11025,220.500,WD1,MILLING,Barlet batch 1 RR,,,,,,,,0,,0,,0,0,,0,0,,true,,,0
+0a697f12-e1b0-4f68-b71e-28e7bb345900,2025-09-22,ALBAY,Leg GID,22,1100,22.000,WD1,SALES,BJMP,,,,,,,,0,,0,,0,0,,0,0,,true,,,0
+b500431f-e8ae-4010-b7d9-8e55f978ef4b,2025-09-22,CATANDUANES,GID 2,12,575,11.500,WD1,SALES,BJMP,,,,,,,,0,,0,,0,0,,0,0,,true,,,0
+fd1dc406-c85f-4a81-b1aa-08b122679958,2025-09-22,CATANDUANES,GID 2,3,125,2.500,RWD1,SALES,BJMP,,,,,,,,0,,0,,0,0,,0,0,,true,,,0
+7a4149b0-f74e-431d-8d6b-2821c80bf208,2025-09-22,CATANDUANES,GID 2,64,3175.2,63.504,WD1,MILLING,from Milling,,,,,,,,0,,0,,0,0,,0,0,,true,,,0
+33a773a1-ba32-49f3-b937-e89562c2933d,2025-09-22,CATANDUANES,GID 2,102,5000,100.000,PDs,TRANSFER,for Milling,,,,,,,,0,,0,,0,0,,0,0,,true,,,0
+6cce9ebd-54af-4be3-b41d-d40ca17b8650,2025-09-22,ALBAY,BSI Libon,316,17654.768,353.095,PDm,PROCUREMENT,,,,,,,,,0,,0,,0,0,,0,0,,true,,,0
+a61cf5fa-bfaa-473d-b063-73c287015815,2025-09-23,ALBAY,Tabaco GID,341,17500,350.000,PDm,MILLING,Batch 3 of 22,,,,,,,,,,,,,,,,,,true,Barlet Ricemill,26318325,
+ddd66850-2f1e-4d9b-8be3-cad073f22848,2025-09-23,ALBAY,BSI Libon,20,1109.96,22.199,PDm,PROCUREMENT,,,,,,,,,,,,,,,,,,,true,,,
+5809c217-cd7e-4b58-8309-c2b53a9c05de,2025-09-23,ALBAY,ABACORP,221,11025,220.500,WD1,MILLING,Barlet Batch 2 RR,,,,,,,,,,,,,,,,,,true,,,
+62440cf9-139d-4851-8676-0388d7a0fa8c,2025-09-23,ALBAY,ABACORP,630,31500,630.000,WD1,MILLING,Dens Batch 2 RR,,,,,,,,,,,,,,,,,,true,,,
+c27b65ab-7554-4035-8a8e-a869fbc243ff,2025-09-23,ALBAY,Leg GID,2,100,2.000,WD1,SALES,BJMP,,,,,,,,,,,,,,,,,,true,,,

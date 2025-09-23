@@ -199,6 +199,7 @@ export const AppDataContextProvider = ({ children }) => {
     // Function to update the entire application data state
     const updateAppData = (updatedValues) => {
         setData(prevData => {
+            // This is the correct fix: merge the existing data with the updated values.
             const newData = { ...prevData, ...updatedValues };
             saveAppDataOnServer(newData); // Save to server
             return newData;

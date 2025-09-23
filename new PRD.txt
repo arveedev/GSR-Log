@@ -1,4 +1,4 @@
-Product Requirements Document: GSR Log App
+Product Requirements Document: GSR Log App (Updated)
 1. Project Overview
 The GSR Log App is a single-page web application designed for the simple and efficient logging of daily GSR-related data. The app provides a user-friendly interface for data entry, history tracking, and summary viewing. Its key focus is on using a lightweight Node.js backend to serve as the single source of truth, handling all data persistence by storing and retrieving data directly from a structured CSV file.
 
@@ -38,19 +38,13 @@ Developed a modular, multi-component React application, with each major feature 
 Prioritized a robust CRUD (Create, Read, Update, Delete) implementation that synchronizes with localStorage on every change.
 
 Phase 2: Refinement & Integration (Current Focus)
-The project is currently in the process of refining existing features and fixing critical data handling issues to ensure stability. We have successfully addressed all persistent runtime errors except for the pricing tab.
+The project is currently in the process of refining existing features and fixing critical data handling issues to ensure stability.
 
-Current Focus: We have successfully completed a major refactoring by removing the dependency on localStorage and establishing the backend server as the single source of truth for all data. The codebase has also been refactored for consistency by using camelCase throughout. We have successfully fixed the handleEditFormChange and ButtonGroup runtime errors. The edit functionality for the Manage Data tab is now operational, with the edit modal styled to be compact and responsive to avoid screen overflow. The complex palayPricing data is now correctly parsed from a JSON string, but the full pricing tab functionality and UI are still pending.
+Current Progress: We have successfully completed a major refactoring by removing the dependency on localStorage and establishing the backend server as the single source of truth for all data. The codebase has also been refactored for consistency by using camelCase throughout. The handleEditFormChange and ButtonGroup runtime errors have been resolved, and the edit functionality for the Manage Data tab is now fully operational, with a compact and responsive edit modal. The complex palayPricing data is correctly parsed, and the full LogHistory component has been refactored to support hover effects for improved user experience. The Palay Deliveries List feature has now been successfully implemented, allowing users to select an unlogged entry to populate the form in the Log Entry tab. The LogEntry component's handleAdd function has been updated to handle both new entries and updates to existing unlogged deliveries.
 
 Future Functionality:
 
 Pricing Tab: Implement the final UI and functionality for managing pricing data.
-
-Export Functionality: Remove the redundant CSV export feature as data is now centrally managed by the backend.
-
-Palay Deliveries List: Add a table to the Log Entry tab that lists unlogged deliveries from the Palay Delivery tab.
-
-Auto-Population: A one-click workflow to populate the Log Entry form by selecting an unlogged delivery from the table. The user will be required to confirm the entry before it is added to the log history.
 
 AI (Authority to Issue) Entry Form: A new form that will connect with the log history and the future Milling Overview feature.
 
@@ -69,7 +63,7 @@ Architecture: The application is built as a series of modular, self-contained co
 
 State Management: React's built-in useState and useEffect hooks will be used to manage component state, with data now fetched from and sent to the backend API.
 
-Data Handling: The application handles data normalization by manually parsing and transforming incoming data. This includes using JSON.parse to correctly handle complex data structures, and converting snake_case keys from the raw CSV data to camelCase for uniformity in the frontend.
+Data Handling: The application handles data normalization by manually parsing and transforming incoming data. This includes using JSON.parse to correctly handle complex data structures and converting snake_case keys from the raw CSV data to camelCase for uniformity in the frontend.
 
 Backend
 

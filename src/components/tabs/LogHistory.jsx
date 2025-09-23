@@ -191,7 +191,7 @@ const LogHistory = () => {
                     <tbody>
                         {sortedEntries.length > 0 ? (
                             sortedEntries.map((entry) => (
-                                <TableRow key={entry.id}>
+                                <HoverableTableRow key={entry.id}>
                                     <TableCell>{formatDate(entry.date)}</TableCell>
                                     <TableCell>{entry.province}</TableCell>
                                     <TableCell>{entry.warehouse}</TableCell>
@@ -207,7 +207,7 @@ const LogHistory = () => {
                                         <ActionButton onClick={() => handleEditClick(entry)}>✏️</ActionButton>
                                         <DeleteButton onClick={() => handleDeleteClick(entry)}>🗑️</DeleteButton>
                                     </TableCell>
-                                </TableRow>
+                                </HoverableTableRow>
                             ))
                         ) : (
                             <TableRow>
@@ -422,8 +422,14 @@ const TableRow = styled.tr`
         background-color: #f9f9f9;
     }
     transition: background-color 0.3s ease;
+`;
+
+// NEW STYLED COMPONENT for the hover effect
+const HoverableTableRow = styled(TableRow)`
     &:hover {
-        background-color: #f0f8ff;
+        background-color: #1e87e2ff;
+        font-weight: bold;
+        font-size: 1em;
     }
 `;
 
