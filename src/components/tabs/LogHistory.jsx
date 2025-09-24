@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAppData } from '../../hooks/useAppData';
 import styled from 'styled-components';
 
@@ -27,7 +27,8 @@ const LogHistory = () => {
     const { data, updateLogEntry, deleteLogEntry } = useAppData();
 
     const [searchTerm, setSearchTerm] = useState('');
-    const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
+    // Updated: Default sort by date ascending.
+    const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'ascending' });
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [selectedEntry, setSelectedEntry] = useState(null);
@@ -46,27 +47,11 @@ const LogHistory = () => {
         remarks: '',
     });
 
-    const sortedProvinces = [...data.provinces].sort((a, b) => a.name.localeCompare(b.name));
-    const sortedTransactionTypes = [...data.transactionTypes].sort((a, b) => a.name.localeCompare(b.name));
-    const sortedVarieties = [...data.varieties].sort((a, b) => a.name.localeCompare(b.name));
-    const sortedRiceMills = [...data.riceMills].sort((a, b) => a.name.localeCompare(b.name));
+    // New: Ref to the scrollable container.
+    const tableWrapperRef = useRef(null);
 
-    useEffect(() => {
-        if (!isEditModalOpen) return;
-
-        const selectedWarehouseInList = data.warehouses.some(w =>
-            w.province === editForm.province && w.name === editForm.warehouse
-        );
-
-        if (editForm.warehouse && !selectedWarehouseInList) {
-            setEditForm(prev => ({
-                ...prev,
-                warehouse: '',
-            }));
-        }
-    }, [editForm.province, editForm.warehouse, isEditModalOpen, data.warehouses]);
-
-    const filteredEntries = data.logEntries.filter(entry => {
+    // FIX: Ensure filteredEntries and sortedEntries are defined BEFORE the useEffect that uses them.
+    const filteredEntries = (data.logEntries || []).filter(entry => {
         return Object.values(entry).some(value =>
             String(value).toLowerCase().includes(searchTerm.toLowerCase())
         );
@@ -88,6 +73,35 @@ const LogHistory = () => {
         return 0;
     });
 
+    // FIX: Add a defensive check with || [] to prevent crashes if data is missing.
+    const sortedProvinces = [...(data.provinces || [])].sort((a, b) => a.name.localeCompare(b.name));
+    const sortedTransactionTypes = [...(data.transactionTypes || [])].sort((a, b) => a.name.localeCompare(b.name));
+    const sortedVarieties = [...(data.varieties || [])].sort((a, b) => a.name.localeCompare(b.name));
+    const sortedRiceMills = [...(data.riceMills || [])].sort((a, b) => a.name.localeCompare(b.name));
+
+    useEffect(() => {
+        if (!isEditModalOpen) return;
+
+        const selectedWarehouseInList = (data.warehouses || []).some(w =>
+            w.province === editForm.province && w.name === editForm.warehouse
+        );
+
+        if (editForm.warehouse && !selectedWarehouseInList) {
+            setEditForm(prev => ({
+                ...prev,
+                warehouse: '',
+            }));
+        }
+    }, [editForm.province, editForm.warehouse, isEditModalOpen, data.warehouses]);
+
+    // New: Effect to auto-scroll to the bottom of the table.
+    // It runs whenever the sortedEntries array is updated, which includes initial load and sorting.
+    useEffect(() => {
+        if (tableWrapperRef.current) {
+            tableWrapperRef.current.scrollTop = tableWrapperRef.current.scrollHeight;
+        }
+    }, [sortedEntries]);
+    
     const requestSort = (key) => {
         let direction = 'ascending';
         if (sortConfig.key === key && sortConfig.direction === 'ascending') {
@@ -155,7 +169,7 @@ const LogHistory = () => {
     };
 
     const filteredEditWarehouses = editForm.province
-        ? [...data.warehouses].filter(w => w.province === editForm.province).sort((a, b) => a.name.localeCompare(b.name))
+        ? [...(data.warehouses || [])].filter(w => w.province === editForm.province).sort((a, b) => a.name.localeCompare(b.name))
         : [];
 
     return (
@@ -170,7 +184,8 @@ const LogHistory = () => {
                 />
             </SearchContainer>
 
-            <TableWrapper>
+            {/* New: Added ref to the scrollable container */}
+            <TableWrapper ref={tableWrapperRef}>
                 <HistoryTable>
                     <thead>
                         <tr>

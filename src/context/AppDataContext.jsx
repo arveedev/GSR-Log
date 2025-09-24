@@ -1,6 +1,3 @@
-// This file sets up a React Context to manage the application's global state.
-// It handles data loading, saving to the backend server, and provides functions to manipulate the data.
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 // Import utility functions for parsing and creating CSV strings.
 import { createCsvString } from '../utils/csvParser';
@@ -83,33 +80,31 @@ export const AppDataContextProvider = ({ children }) => {
                     appData = await response.json();
                 }
 
-                // Ensure all necessary lists exist with default values if they are missing
-                const defaultData = {
-                    provinces: [],
-                    warehouses: [],
-                    transactionTypes: [],
-                    varieties: [],
-                    mtsTypes: [],
-                    sdoList: [],
-                    pricing: {},
-                    enwfRanges: [],
-                    logEntries: [],
-                    grainTypes: ['Palay', 'Rice', 'Corn'],
-                    ricemills: [],
-                    palayPricing: [],
-                    ricePricing: [],
+                // FIX: Conditionally initialize default data to prevent overwriting existing data.
+                const finalData = {
+                    provinces: appData.provinces || [],
+                    warehouses: appData.warehouses || [],
+                    transactionTypes: appData.transactionTypes || [],
+                    varieties: appData.varieties || [],
+                    mtsTypes: appData.mtsTypes || [],
+                    sdoList: appData.sdoList || [],
+                    pricing: appData.pricing || {},
+                    enwfRanges: appData.enwfRanges || [],
+                    logEntries: appData.logEntries || [],
+                    grainTypes: appData.grainTypes || ['Palay', 'Rice', 'Corn'],
+                    ricemills: appData.ricemills || [],
+                    palayPricing: appData.palayPricing || [],
+                    ricePricing: appData.ricePricing || [],
                 };
                 
-                const finalData = { ...defaultData, ...appData };
-
-                // Fix: Normalize ricemills data keys to use camelCase
+                // Normalize ricemills data keys to use camelCase
                 finalData.ricemills = finalData.ricemills.map(item => ({
                     ...item,
                     contactNumber: item.contactNumber || item.contact_number,
                     contact_number: undefined,
                 }));
                 
-                // Fix: Normalize palayPricing data by correctly parsing the JSON string and converting keys
+                // Normalize palayPricing data by correctly parsing the JSON string and converting keys
                 finalData.palayPricing = finalData.palayPricing.map(item => ({
                     ...item,
                     varietyId: item.varietyId || item.variety_id,
