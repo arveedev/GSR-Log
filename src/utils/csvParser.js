@@ -21,119 +21,71 @@ const fetchCsv = async () => {
     }
 };
 
-// Helper function to correctly convert snake_case to camelCase.
-const toCamelCase = (str) => {
-    return str.replace(/_([a-z])/g, (match, p1) => p1.toUpperCase());
-};
-
-// Helper function to convert camelCase to snake_case for headers
-const toSnakeCase = (str) => {
-    return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
-};
-
 /**
  * Parses a single CSV string into a structured data object.
+ * This is the corrected version that handles sections and complex data.
  * @param {string} csvString The raw CSV data as a string.
  * @returns {object} A structured object containing all the parsed data lists.
  */
 export const parseAppData = (csvString) => {
-    const data = {
-        provinces: [],
-        warehouses: [],
-        transactionTypes: [],
-        varieties: [],
-        mtsTypes: [],
-        enwfRanges: [],
-        pricing: {},
-        sdoList: [],
-        logEntries: [],
-        ricemills: [],
-        palayPricing: [],
-        ricePricing: [],
-    };
-
+    const data = {};
     if (!csvString) {
         return data;
     }
 
-    const sections = Papa.parse(csvString.trim(), {
-        header: true,
-        skipEmptyLines: true,
-        transformHeader: (header) => {
-            const trimmedHeader = header.trim();
-            // Specific header transformations for backward compatibility
-            if (trimmedHeader === 'owner_representative') return 'ownerRepresentative';
-            if (trimmedHeader === 'contact_number') return 'contactNumber';
-            if (trimmedHeader === 'moisture_ranges') return 'moistureRanges';
-            if (trimmedHeader === 'variety_id') return 'varietyId';
-            
-            // Log entries specific conversions
-            if (trimmedHeader === 'netkgs') return 'netKgs';
-            if (trimmedHeader === 'per50') return 'per50';
-            if (trimmedHeader === 'transaction_type') return 'transactionType';
-            if (trimmedHeader === 'pr_number') return 'prNumber';
-            if (trimmedHeader === 'wsr_number') return 'wsrNumber';
-            if (trimmedHeader === 'entry_type') return 'entryType';
-            if (trimmedHeader === 'moisture_content') return 'moistureContent';
-            if (trimmedHeader === 'gross_kgs') return 'grossKgs';
-            if (trimmedHeader === 'mts_type') return 'mtsType';
-            if (trimmedHeader === 'sack_weight') return 'sackWeight';
-            if (trimmedHeader === 'enw_kgs') return 'enwKgs';
-            if (trimmedHeader === 'basic_cost') return 'basicCost';
-            if (trimmedHeader === 'pricer_cost') return 'pricerCost';
-            if (trimmedHeader === 'grand_total') return 'grandTotal';
-            if (trimmedHeader === 'sdo_name') return 'sdoName';
-            if (trimmedHeader === 'is_logged') return 'isLogged';
-            if (trimmedHeader === 'ai_number') return 'aiNumber';
-            if (trimmedHeader === 'rice_recovery') return 'riceRecovery';
+    const sections = csvString.split('\n[').slice(1);
 
-            return toCamelCase(trimmedHeader);
-        },
-        delimiter: ',',
-    });
+    sections.forEach(section => {
+        const lines = section.split('\n');
+        const sectionName = lines[0].replace(']\r', '').replace(']', '').trim();
+        const content = lines.slice(1).join('\n');
 
-    const lines = csvString.split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0);
-    let currentSection = null;
-    let currentCsvData = '';
-
-    lines.forEach(line => {
-        if (line.startsWith('[') && line.endsWith(']')) {
-            if (currentSection && currentCsvData) {
-                const parsed = Papa.parse(currentCsvData, { header: true, skipEmptyLines: true, dynamicTyping: true });
-                let normalizedData = parsed.data;
-
-                // Normalize keys from snake_case to camelCase
-                normalizedData = normalizedData.map(item => {
-                    const newItem = {};
-                    for (const key in item) {
-                        const newKey = toCamelCase(key.trim());
-                        newItem[newKey] = item[key];
-                    }
-                    return newItem;
-                });
-                data[currentSection] = normalizedData;
-            }
-            currentSection = line.substring(1, line.length - 1).trim();
-            currentCsvData = '';
-        } else if (currentSection) {
-            currentCsvData += line + '\n';
+        if (!content.trim()) {
+            data[sectionName] = [];
+            return;
         }
-    });
 
-    // Process the last section
-    if (currentSection && currentCsvData) {
-        const parsed = Papa.parse(currentCsvData, { header: true, skipEmptyLines: true, dynamicTyping: true });
-        let normalizedData = parsed.data;
-        normalizedData = normalizedData.map(item => {
+        const parsed = Papa.parse(content, { 
+            header: true, 
+            skipEmptyLines: true,
+            // Dynamic typing can sometimes cause issues, so we'll handle it manually
+            // dynamicTyping: true, 
+        });
+
+        // Manually handle specific data types and normalize keys
+        const normalizedData = parsed.data.map(item => {
             const newItem = {};
             for (const key in item) {
-                const newKey = toCamelCase(key.trim());
-                newItem[newKey] = item[key];
+                const camelCaseKey = key.trim().replace(/_([a-z])/g, (match, p1) => p1.toUpperCase());
+                let value = item[key];
+                
+                // Specific data type conversions
+                if (camelCaseKey === 'price' || camelCaseKey === 'weight' || camelCaseKey === 'enwf') {
+                    value = parseFloat(value) || 0;
+                }
+                
+                // Handle isLogged boolean
+                if (camelCaseKey === 'isLogged') {
+                    value = value === 'true';
+                }
+
+                // FIX: Correctly parse the JSON string for moistureRanges
+                if (camelCaseKey === 'moistureRanges' && value) {
+                    try {
+                        value = JSON.parse(value);
+                    } catch (e) {
+                        console.error(`Error parsing JSON for moistureRanges:`, e, value);
+                        value = []; // Default to an empty array on error
+                    }
+                }
+                
+                newItem[camelCaseKey] = value;
             }
             return newItem;
         });
-        data[currentSection] = normalizedData;
-    }
+
+        data[sectionName] = normalizedData;
+    });
 
     return data;
 };
@@ -151,13 +103,13 @@ const logEntryHeaders = [
 const getHeadersForSection = (sectionName) => {
     switch (sectionName) {
         case 'provinces': return ['id', 'name'];
-        case 'warehouses': return ['id', 'name', 'province'];
+        case 'warehouses': return ['id', 'name', 'province', 'warehouseCode'];
         case 'transactionTypes': return ['id', 'name'];
         case 'varieties': return ['id', 'name', 'grainType'];
         case 'mtsTypes': return ['id', 'name', 'weight', 'grainType'];
         case 'sdoList': return ['id', 'name', 'province'];
         case 'enwfRanges': return ['id', 'moisture', 'enwf'];
-        case 'ricemills': return ['id', 'name', 'ownerRepresentative', 'address', 'contactNumber'];
+        case 'ricemills': return ['id', 'name', 'owner', 'address', 'contactNumber'];
         case 'palayPricing': return ['id', 'varietyId', 'variety', 'moistureRanges'];
         case 'ricePricing': return ['id', 'name', 'price', 'description'];
         case 'logEntries': return logEntryHeaders;
@@ -167,6 +119,7 @@ const getHeadersForSection = (sectionName) => {
 
 /**
  * Creates a single CSV string from the structured data object.
+ * This is the corrected version that handles complex data serialization.
  * @param {object} data The structured data object.
  * @returns {string} The raw CSV data as a string.
  */
@@ -182,7 +135,22 @@ export const createCsvString = (data) => {
         const sectionData = data[sectionName];
         if (Array.isArray(sectionData) && sectionData.length > 0) {
             const headers = getHeadersForSection(sectionName);
-            const csvSection = Papa.unparse(sectionData, { columns: headers });
+            if (headers.length === 0) return;
+
+            // FIX: Correctly format data before unparsing, especially JSON
+            const formattedData = sectionData.map(item => {
+                const newItem = { ...item };
+                if (sectionName === 'palayPricing' && item.moistureRanges) {
+                    newItem.moistureRanges = JSON.stringify(item.moistureRanges);
+                }
+                return newItem;
+            });
+            
+            const csvSection = Papa.unparse(formattedData, {
+                columns: headers,
+                quotes: true, // Force quotes for all fields
+            });
+
             output += `[${sectionName}]\n${csvSection}\n\n`;
         } else if (sectionData && !Array.isArray(sectionData) && Object.keys(sectionData).length > 0) {
             // Handle the 'pricing' section which is an object

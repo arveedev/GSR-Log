@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-// Import utility functions for parsing and creating CSV strings.
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+// We no longer need parseAppData from csvParser because the server sends JSON.
 import { createCsvString } from '../utils/csvParser';
-import { v4 as uuidv4 } from 'uuid'; // Import uuidv4 for generating unique IDs
+import { v4 as uuidv4 } from 'uuid';
 
 // Create a new Context. This is what components will use to access the data.
 export const AppDataContext = createContext(null);
@@ -40,27 +40,61 @@ export const AppDataContextProvider = ({ children }) => {
     // State to hold any errors that occur during data fetching.
     const [error, setError] = useState(null);
 
-    // New function to save data on the server
-    const saveAppDataOnServer = async (updatedData) => {
+    /**
+     * SAFE Centralized function to save data on the server using the RMW pattern.
+     * This replaces the unsafe 'saveAppDataOnServer'.
+     * @param {string} listName The key of the list being modified (e.g., 'riceMills', 'logEntries').
+     * @param {string} action The action being performed ('add', 'update', 'delete').
+     * @param {Object} item The single item object being added, updated, or deleted.
+     */
+    const updateServerData = useCallback(async (listName, action, item) => {
         try {
-            const response = await fetch('http://localhost:3001/api/save-data', {
+            // NOTE: listName here is already the desired camelCase key (e.g., 'riceMills')
+            const response = await fetch(`http://localhost:3001/api/manage-data/${listName}/${action}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(updatedData),
+                body: JSON.stringify(item),
             });
 
             if (!response.ok) {
-                throw new Error(`Server error! Status: ${response.status}`);
+                const errorText = await response.text();
+                throw new Error(`Server update failed for ${listName}/${action}! Status: ${response.status} - ${errorText}`);
             }
 
-            console.log('Data successfully saved on the server.');
+            // The server returns the FULL updated array for that list (e.g., all logEntries)
+            const updatedList = await response.json(); 
+            
+            // Safely update the local state using the server's response.
+            setData(prevData => {
+                if (!prevData) return null;
+
+                // CRITICAL FIX: Ensure the key used for local state update is ALWAYS camelCase ('riceMills'),
+                // regardless of what the server may have returned.
+                const keyToUpdate = (listName.toLowerCase() === 'ricemills') ? 'riceMills' : listName;
+
+                // We must also defensively clear the incorrect lowercase key if it exists in the previous state.
+                const newData = { ...prevData, [keyToUpdate]: updatedList };
+
+                if (listName.toLowerCase() === 'ricemills' && newData.ricemills) {
+                     // Delete the problematic lowercase key if it somehow got into state
+                    delete newData.ricemills;
+                }
+
+                return newData; 
+            });
+
+            console.log(`Data successfully updated on the server for ${listName}/${action}.`);
+            return true; // Indicate success
         } catch (error) {
             console.error('Error saving data:', error);
-            // You might want to handle this error in the UI, e.g., show a toast notification
+            // Optionally, set an error state here or alert the user
+            return false; // Indicate failure
         }
-    };
+    }, [setData]); // Dependency on setData
+
+    // NOTE: saveAppDataOnServer is removed entirely as it's the source of the bug.
 
     // This single useEffect handles all initial data loading from the server.
     useEffect(() => {
@@ -80,38 +114,66 @@ export const AppDataContextProvider = ({ children }) => {
                     appData = await response.json();
                 }
 
-                // FIX: Conditionally initialize default data to prevent overwriting existing data.
-                const finalData = {
-                    provinces: appData.provinces || [],
-                    warehouses: appData.warehouses || [],
-                    transactionTypes: appData.transactionTypes || [],
-                    varieties: appData.varieties || [],
-                    mtsTypes: appData.mtsTypes || [],
-                    sdoList: appData.sdoList || [],
-                    pricing: appData.pricing || {},
-                    enwfRanges: appData.enwfRanges || [],
-                    logEntries: appData.logEntries || [],
-                    grainTypes: appData.grainTypes || ['Palay', 'Rice', 'Corn'],
-                    ricemills: appData.ricemills || [],
-                    palayPricing: appData.palayPricing || [],
-                    ricePricing: appData.ricePricing || [],
+                // Define a base data structure to ensure all keys are always present
+                const baseData = {
+                    provinces: [],
+                    warehouses: [],
+                    transactionTypes: [],
+                    varieties: [],
+                    mtsTypes: [],
+                    sdoList: [],
+                    pricing: {},
+                    enwfRanges: [],
+                    logEntries: [],
+                    grainTypes: ['Palay', 'Rice', 'Corn'],
+                    riceMills: [], // <-- CORRECT CASE
+                    palayPricing: [],
+                    ricePricing: [],
+                    aiDocuments: [],
+                    customers: [],
                 };
                 
-                // Normalize ricemills data keys to use camelCase
-                finalData.ricemills = finalData.ricemills.map(item => ({
-                    ...item,
-                    contactNumber: item.contactNumber || item.contact_number,
-                    contact_number: undefined,
-                }));
+                // CRITICAL FIX (LOAD): Consolidate 'ricemills' (lowercase from server file) 
+                // into 'riceMills' (camelCase, preferred internal key) before merging.
+                const normalizedAppData = { ...appData };
+                if (normalizedAppData.ricemills && !normalizedAppData.riceMills) {
+                    normalizedAppData.riceMills = normalizedAppData.ricemills;
+                    delete normalizedAppData.ricemills; // Remove the problematic key
+                }
                 
-                // Normalize palayPricing data by correctly parsing the JSON string and converting keys
-                finalData.palayPricing = finalData.palayPricing.map(item => ({
-                    ...item,
-                    varietyId: item.varietyId || item.variety_id,
-                    variety_id: undefined,
-                }));
+                const finalData = {
+                    ...baseData,
+                    ...normalizedAppData, // Use the normalized data
+                };
+                
+                // Normalization logic (KEEPING THIS AS IS)
+                finalData.riceMills = finalData.riceMills.map(item => {
+                    const newItem = { ...item };
+                    if (newItem.contact_number) {
+                        newItem.contactNumber = newItem.contact_number;
+                        delete newItem.contact_number;
+                    }
+                    return newItem;
+                });
 
-                // Normalize logEntries data keys to use camelCase
+                finalData.warehouses = finalData.warehouses.map(item => {
+                    const newItem = { ...item };
+                    if (newItem.warehouse_code) {
+                        newItem.warehouseCode = newItem.warehouse_code;
+                        delete newItem.warehouse_code;
+                    }
+                    return newItem;
+                });
+                
+                finalData.palayPricing = finalData.palayPricing.map(item => {
+                    const newItem = { ...item };
+                    if (newItem.variety_id) {
+                        newItem.varietyId = newItem.variety_id;
+                        delete newItem.variety_id;
+                    }
+                    return newItem;
+                });
+
                 const normalizedLogEntries = finalData.logEntries.map(entry => {
                     return {
                         ...entry,
@@ -138,20 +200,43 @@ export const AppDataContextProvider = ({ children }) => {
                 
                 finalData.logEntries = normalizedLogEntries;
 
+                const normalizedCustomers = finalData.customers.map(customer => ({
+                    name: customer.name,
+                    address: customer.address,
+                }));
+
+                const uniqueCustomers = Array.from(new Map(normalizedCustomers.map(item => [JSON.stringify(item), item])).values());
+                finalData.customers = uniqueCustomers;
+                
                 if (!finalData.enwfRanges || finalData.enwfRanges.length === 0 || finalData.enwfRanges[0].moisture === undefined) {
                     finalData.enwfRanges = generateEnwfData();
                 }
 
                 setData(finalData);
+                // We should only use the NEW safe server function if we initialize data.
+                // We cannot use updateServerData here as it relies on state setter.
+                // You must ensure that the server handles saving of default data upon 404 response.
+                if (response.status === 404) {
+                    // This is a special case. Since updateServerData is designed for lists, 
+                    // we keep the old-style call here to save the entire initial structure
+                    // only if the file didn't exist, which is safer than no save at all.
+                    // This is the *only* time this full save should be allowed.
+                    fullSaveInitialData(finalData); 
+                }
 
             } catch (err) {
                 console.error("Failed to load data:", err);
                 setError(err);
-                setData({
+                // This ensures that even on a loading error, the state is fully formed
+                const baseData = {
                     provinces: [], warehouses: [], varieties: [], transactionTypes: [], logEntries: [],
                     mtsTypes: [], enwfRanges: generateEnwfData(), sdoList: [], pricing: {},
-                    grainTypes: ['Palay', 'Rice', 'Corn'], ricemills: [], palayPricing: [], ricePricing: []
-                });
+                    grainTypes: ['Palay', 'Rice', 'Corn'], riceMills: [], palayPricing: [], ricePricing: [],
+                    aiDocuments: [], customers: [],
+                };
+                setData(baseData);
+                // Don't attempt to save baseData if loading failed, unless absolutely necessary
+                // fullSaveInitialData(baseData);
             } finally {
                 setLoading(false);
             }
@@ -159,50 +244,82 @@ export const AppDataContextProvider = ({ children }) => {
         loadInitialData();
     }, []); // Empty dependency array ensures this runs only once.
     
+    // TEMPORARY FULL SAVE for initial load (to be decommissioned once server handles this better)
+    const fullSaveInitialData = async (initialData) => {
+        try {
+            await fetch('http://localhost:3001/api/save-data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(initialData),
+            });
+            console.log('Initial data structure saved to server.');
+        } catch (error) {
+            console.error('Error saving initial data:', error);
+        }
+    };
+
     // Function to add a new log entry.
-    const addLogEntry = (newEntry) => {
-        setData(prevData => {
-            const updatedLogEntries = [...prevData.logEntries, { ...newEntry, id: uuidv4() }];
-            const newData = { ...prevData, logEntries: updatedLogEntries };
-            saveAppDataOnServer(newData); // Save to server
-            return newData;
-        });
+    const addLogEntry = async (newEntry) => { // ADDED 'async'
+        await updateServerData('logEntries', 'add', { ...newEntry, id: uuidv4() });
     };
 
     // Function to update an existing log entry.
-    const updateLogEntry = (updatedEntry) => {
-        setData(prevData => {
-            const updatedLogEntries = prevData.logEntries.map(entry =>
-                entry.id === updatedEntry.id ? updatedEntry : entry
-            );
-            const newData = { ...prevData, logEntries: updatedLogEntries };
-            saveAppDataOnServer(newData); // Save to server
-            return newData;
-        });
+    const updateLogEntry = async (updatedEntry) => { // ADDED 'async'
+        await updateServerData('logEntries', 'update', updatedEntry);
     };
     
     // Function to delete a log entry.
-    const deleteLogEntry = (entryToDelete) => {
-        setData(prevData => {
-            const updatedLogEntries = prevData.logEntries.filter(entry => entry.id !== entryToDelete.id);
-            const newData = { ...prevData, logEntries: updatedLogEntries };
-            saveAppDataOnServer(newData); // Save to server
-            return newData;
-        });
+    const deleteLogEntry = async (entryToDelete) => { // ADDED 'async'
+        await updateServerData('logEntries', 'delete', entryToDelete);
     };
 
-    // Function to update the entire application data state
+    // Function to add a new AI document.
+    const addAiDocument = async (newDocument) => { // ADDED 'async'
+        await updateServerData('aiDocuments', 'add', { ...newDocument, id: uuidv4(), isLogged: false });
+    };
+
+    // Function to update an existing AI document.
+    const updateAiDocument = async (updatedDocument) => { // ADDED 'async'
+        await updateServerData('aiDocuments', 'update', updatedDocument);
+    };
+    
+    // Function to update the customers list (for auto-learning).
+    const updateCustomersList = async (newCustomer) => { // ADDED 'async'
+        if (!data) return;
+        const isExisting = data.customers.some(
+            c => c.name === newCustomer.name && c.address === newCustomer.address
+        );
+
+        if (!isExisting) {
+            await updateServerData('customers', 'add', newCustomer);
+        }
+    };
+
+    // Function to update the entire application data state (DECOMMISSIONED)
+    // NOTE: This function is now deprecated. Components should use the new 
+    // updateServerData directly or the other specific handlers (add/update/delete)
+    // for specific lists (e.g., riceMills, varieties) within the Manage Data tab.
+    // We are keeping it here but logging an error to alert developers not to use it for data lists.
     const updateAppData = (updatedValues) => {
+        console.error("WARNING: updateAppData is DEPRECATED for list changes (like ricemills, varieties). Use updateServerData directly instead.");
         setData(prevData => {
-            // This is the correct fix: merge the existing data with the updated values.
+            if (!prevData) {
+                return null;
+            }
+            // For non-list updates (like configuration or single values), 
+            // the full save must still be used, but this is extremely risky.
             const newData = { ...prevData, ...updatedValues };
-            saveAppDataOnServer(newData); // Save to server
+            fullSaveInitialData(newData); // Using the full-save temporary helper
             return newData;
         });
     };
     
-    // Function to export all data to a CSV file.
+    // Function to export all data to a CSV file. (KEEPING AS IS)
     const exportData = () => {
+        if (!data) {
+            console.error("No data to export.");
+            return;
+        }
         const csvString = createCsvString(data);
         const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
@@ -227,18 +344,13 @@ export const AppDataContextProvider = ({ children }) => {
         addLogEntry,
         updateLogEntry,
         deleteLogEntry,
+        // New safe function available for CRUD operations in Manage Data tab
+        updateServerData, 
+        addAiDocument,
+        updateAiDocument,
+        updateCustomersList,
     };
     
-    // Renders a loading message while data is being fetched.
-    if (loading) {
-        return <div>Loading...</div>;
-    }
-    
-    // Renders an error message if data fetching fails.
-    if (error) {
-        return <div>Error: {error.message}</div>;
-    }
-
     // Provides the value to all child components.
     return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;
 };

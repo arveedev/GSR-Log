@@ -1,15 +1,15 @@
 Product Requirements Document: GSR Log App (Updated)
 1. Project Overview
-The GSR Log App is a single-page web application designed for the simple and efficient logging of daily GSR-related data. The app provides a user-friendly interface for data entry, history tracking, and summary viewing. Its key focus is on using a lightweight Node.js backend to serve as the single source of truth, handling all data persistence by storing and retrieving data directly from a structured CSV file.
+The GSR Log App is a single-page web application designed for the simple and efficient logging of daily GSR-related data. The app provides a user-friendly interface for data entry, history tracking, and summary viewing. Its key focus is on using a lightweight **Node.js backend to serve as the single source of truth**, handling all data persistence by storing and retrieving data directly from a structured CSV file.
 
 2. Goals & Objectives
 Primary Goal: To provide a simple, reliable, and locally-hosted application for daily data logging and management, powered by a centralized backend.
 
 Objective 1: To ensure seamless data persistence by storing and retrieving all application data from a centralized backend server that uses a structured CSV file as its database.
 
-Objective 2: To offer a clear, tab-based user interface for intuitive navigation across all functionalities (Log Entry, History, Summary, Manage Data, Palay Deliveries).
+Objective 2: To offer a clear, tab-based user interface for intuitive navigation across all functionalities (Log Entry, History, Summary, Manage Lookup Data, Pricing, Palay Deliveries).
 
-Objective 3: To enable users to easily manage lookup data (provinces, varieties, etc.) directly within the app's dedicated Manage Data tab.
+Objective 3: To enable users to easily manage lookup data (provinces, varieties, pricing, etc.) directly within the app's dedicated Manage Data tab, supporting both simple string fields and complex data structures.
 
 Objective 4: To create a seamless workflow for logging new entries by integrating Palay Deliveries and AI Entry forms with the main Log Entry and History tabs.
 
@@ -27,8 +27,6 @@ Summary Tab: Provides aggregated views and daily reports of the data.
 
 Manage Data Tab: A dedicated tab for managing lookup data with separate sub-tabs.
 
-Palay Delivery Tab: A dedicated form for entering palay deliveries, with an "isLogged" flag.
-
 Data Persistence: The ability to save all data to localStorage.
 
 Strategy:
@@ -40,9 +38,11 @@ Prioritized a robust CRUD (Create, Read, Update, Delete) implementation that syn
 Phase 2: Refinement & Integration (Current Focus)
 The project is currently in the process of refining existing features and fixing critical data handling issues to ensure stability.
 
-Current Progress: We have successfully completed a major refactoring by removing the dependency on localStorage and establishing the backend server as the single source of truth for all data. The codebase has also been refactored for consistency by using camelCase throughout. The handleEditFormChange and ButtonGroup runtime errors have been resolved, and the edit functionality for the Manage Data tab is now fully operational, with a compact and responsive edit modal. The complex palayPricing data is correctly parsed, and the full LogHistory component has been refactored to support hover effects for improved user experience. The Palay Deliveries List feature has now been successfully implemented, allowing users to select an unlogged entry to populate the form in the Log Entry tab. The LogEntry component's handleAdd function has been updated to handle both new entries and updates to existing unlogged deliveries.
+Current Progress: We have successfully completed a major refactoring by removing the dependency on localStorage and establishing the backend server as the **single source of truth for all data**. The codebase has also been refactored for consistency by using **camelCase** throughout. The **handleEditFormChange and component keying runtime errors have been resolved**, and the edit functionality for the Manage Data tab is now fully operational. The **complex palayPricing data (JSON within CSV) is correctly parsed, displayed, and saved**. The **ricePricing input for 'Price Name' has been successfully changed from a dropdown to a textbox** to simplify the data entry workflow. The `warehouseCode` field has been successfully added to the warehouses data structure and integrated into the Manage Data tab's add and edit forms.
 
 Future Functionality:
+
+Palay Deliveries List: Implement the ability to view and select an unlogged entry to populate the form in the Log Entry tab.
 
 Pricing Tab: Implement the final UI and functionality for managing pricing data.
 
@@ -52,7 +52,6 @@ Milling Overview: A future feature that monitors and records all milling activit
 
 4. Technical Details
 Frontend
-
 Framework: React
 
 Language: JavaScript (ES6+)
@@ -63,10 +62,9 @@ Architecture: The application is built as a series of modular, self-contained co
 
 State Management: React's built-in useState and useEffect hooks will be used to manage component state, with data now fetched from and sent to the backend API.
 
-Data Handling: The application handles data normalization by manually parsing and transforming incoming data. This includes using JSON.parse to correctly handle complex data structures and converting snake_case keys from the raw CSV data to camelCase for uniformity in the frontend.
+Data Handling: The application handles data normalization by manually parsing and transforming incoming data. This includes using **JSON.parse to correctly handle complex data structures (like moistureRanges)** and **converting snake_case keys from the raw CSV data to camelCase** for uniformity in the frontend.
 
 Backend
-
 Platform: Node.js
 
 Purpose: The backend now serves as the primary data store, handling all CRUD (Create, Read, Update, Delete) operations with the structured CSV file. It exposes API endpoints for the frontend to manage all data.
@@ -77,13 +75,11 @@ Data Storage: The CSV file on the server is the primary database.
 
 5. Dependencies
 Frontend Dependencies:
-
 react: Core React library.
 
 react-dom: Enables React components to render to the DOM.
 
 Backend Dependencies:
-
 express: A web framework for Node.js, used to create the server and API endpoints.
 
 cors: A middleware to enable Cross-Origin Resource Sharing, allowing the frontend to access the backend.
